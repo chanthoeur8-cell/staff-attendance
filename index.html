@@ -489,7 +489,7 @@ select.form-input { cursor: pointer; }
       </div>
       <div class="schedule-row">
         <div><div class="schedule-name">🌙 ស្គេន PM (ច័ន្ទ–សៅរ៍)</div><div class="schedule-desc">ស្គេនដងទី2</div></div>
-        <input type="time" class="time-input" id="sLatePM" value="13:01">
+        <input type="time" class="time-input" id="sLatePM" value="1:05">
       </div>
     </div>
 
@@ -567,20 +567,32 @@ select.form-input { cursor: pointer; }
           <div class="radio-opt" id="scanOptOut" onclick="scanSelectType('out')">🔵 Check-Out</div>
         </div>
       </div>
-      <button class="btn btn-success btn-full" style="margin-top:8px" onclick="submitScan()">📌 បញ្ជាក់</button>
+      <button class="btn btn-success btn-full" style="margin-top:8px" onclick="submitScan()">📌 Scan</button>
       <div class="status-msg" id="scanStatus"></div>
     </div>
-    <button class="btn btn-secondary btn-full" style="margin-top:12px" onclick="closeScanModal()">← ត្រលប់</button>
+    <button class="btn btn-secondary btn-full" style="margin-top:12px" onclick="closeScanModal()">← Back</button>
   </div>
 </div>
 
 <script>
 // ─── STATE ───────────────────────────────────────────────────
 const DEFAULT_STAFF = [
-  "Chanthoeurn chhoeurn","Ashley villela","វិន សេរីភាព","CHOT HORN",
-  "មុឹង ស្រីនីត","អឿន កាណាល់","ប៉ូ សូឌិន","Leang Sopheavy",
-  "Chamnan Veasna","Born Chhorda","SOK SREYPICE","Eng sreynin",
-  "កុសល សៀកម៉េង","vat mouy saing","ឈឹមវ៉ាន លីហង្ស","Dorn Sreyneth"
+  { name: "Chanthoeurn chhoeurn", role: "IT" },
+  { name: "Ashley villela", role: "English Teacher" },
+  { name: "វិន សេរីភាព", role: "Teacher" },
+  { name: "CHOT HORN", role: "Teacher" },
+  { name: "មុឹង ស្រីនីត", role: "Teacher" },
+  { name: "អឿន កាណាល់", role: "Teacher" },
+  { name: "ប៉ូ សូឌិន", role: "Teacher + រដ្ឋបាល" },
+  { name: "Leang Sopheavy", role: "Computer Teacher" },
+  { name: "Chamnan Veasna", role: "English Teacher" },
+  { name: "Born Chhorda", role: "Teacher" },
+  { name: "SOK SREYPICE", role: "English Teacher" },
+  { name: "Eng sreynin", role: "Rect" },
+  { name: "កុសល សៀកម៉េង", role: "Teacher" },
+  { name: "vat mouy saing", role: "Chinese Teacher" },
+  { name: "ឈឹមវ៉ាន លីហង្ស", role: "Teacher" },
+  { name: "Dorn Sreyneth", role: "English Teacher" }
 ];
 
 let state = {
@@ -642,7 +654,12 @@ function saveAll() {
 }
 function loadAll() {
   const s = localStorage.getItem('mk_staff');
-  state.staffList = s ? JSON.parse(s) : DEFAULT_STAFF.map(n => ({ name: n, role: 'Teacher' }));
+  if (s) {
+    const parsed = JSON.parse(s);
+    state.staffList = parsed.map(item => typeof item === 'string' ? { name: item, role: 'Teacher' } : item);
+  } else {
+    state.staffList = DEFAULT_STAFF;
+  }
   const r = localStorage.getItem('mk_records_' + todayKey());
   state.todayRecords = r ? JSON.parse(r) : {};
   const l = localStorage.getItem('mk_log');
@@ -1106,5 +1123,4 @@ function showStatus(id, type, msg) {
 window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
-
 </html>
