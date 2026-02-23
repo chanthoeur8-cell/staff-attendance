@@ -489,7 +489,7 @@ select.form-input { cursor: pointer; }
       </div>
       <div class="schedule-row">
         <div><div class="schedule-name">🌙 ស្គេន PM (ច័ន្ទ–សៅរ៍)</div><div class="schedule-desc">ស្គេនដងទី2</div></div>
-        <input type="time" class="time-input" id="sLatePM" value="1:05">
+        <input type="time" class="time-input" id="sLatePM" value="13:01">
       </div>
     </div>
 
@@ -567,10 +567,10 @@ select.form-input { cursor: pointer; }
           <div class="radio-opt" id="scanOptOut" onclick="scanSelectType('out')">🔵 Check-Out</div>
         </div>
       </div>
-      <button class="btn btn-success btn-full" style="margin-top:8px" onclick="submitScan()">📌 Scan</button>
+      <button class="btn btn-success btn-full" style="margin-top:8px" onclick="submitScan()">📌 បញ្ជាក់</button>
       <div class="status-msg" id="scanStatus"></div>
     </div>
-    <button class="btn btn-secondary btn-full" style="margin-top:12px" onclick="closeScanModal()">← Back</button>
+    <button class="btn btn-secondary btn-full" style="margin-top:12px" onclick="closeScanModal()">← ត្រលប់</button>
   </div>
 </div>
 
@@ -579,7 +579,7 @@ select.form-input { cursor: pointer; }
 const DEFAULT_STAFF = [
   { name: "Chanthoeurn chhoeurn", role: "IT" },
   { name: "Ashley villela", role: "English Teacher" },
-  { name: "វិន សេរីភាព", role: "Teacher" },
+  { name: "វិន សេរីភាព", role: "Assistant Teacher" },
   { name: "CHOT HORN", role: "Teacher" },
   { name: "មុឹង ស្រីនីត", role: "Teacher" },
   { name: "អឿន កាណាល់", role: "Teacher" },
@@ -587,9 +587,9 @@ const DEFAULT_STAFF = [
   { name: "Leang Sopheavy", role: "Computer Teacher" },
   { name: "Chamnan Veasna", role: "English Teacher" },
   { name: "Born Chhorda", role: "Teacher" },
-  { name: "SOK SREYPICE", role: "English Teacher" },
-  { name: "Eng sreynin", role: "Rect" },
-  { name: "កុសល សៀកម៉េង", role: "Teacher" },
+  { name: "SOK SREYPICE", role: "Teacher" },
+  { name: "Eng sreynin", role: "Receptionist" },
+  { name: "កុសល សៀកម៉េង", role: "Assistant Teacher" },
   { name: "vat mouy saing", role: "Chinese Teacher" },
   { name: "ឈឹមវ៉ាន លីហង្ស", role: "Teacher" },
   { name: "Dorn Sreyneth", role: "English Teacher" }
@@ -606,9 +606,9 @@ let state = {
     siteUrl: window.location.href,
     lateWD: '07:05',
     lateSat: '08:30',
-    latePM: '1:05',
+    latePM: '13:01',
     sumAM: '08:50',
-    sumPM: '2:30',
+    sumPM: '14:30',
     sumSat: '09:30'
   },
   autoSentToday: { am: false, pm: false, sat: false }
@@ -1036,6 +1036,7 @@ async function recordAttendance(name, type, statusId) {
   const time24 = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const staff = state.staffList.find(s => s.name === name);
   const role = staff?.role || '';
+  const total = state.staffList.length;
 
   if (!state.todayRecords[name]) state.todayRecords[name] = {};
   const rec = state.todayRecords[name];
@@ -1052,30 +1053,97 @@ async function recordAttendance(name, type, statusId) {
       rec.lateMin2 = lateMin;
     }
     addLog('in', `${name} Check-In${scanNum===2?' (ស្គេន2)':''} ${timeStr}${lateMin>0?' ⚠️ យឺត '+fmtLate(lateMin):' ✅'}`);
+    saveAll();
 
+    // Count how many have checked in (scan 1 only)
+    const checkedInCount = Object.values(state.todayRecords).filter(r => r.checkIn).length;
+    const remaining = total - checkedInCount;
     const lateLabel = lateMin > 0 ? `\n⚠️ <b>យឺត: ${fmtLate(lateMin)}</b>` : '\n✅ <b>ទាន់ម៉ោង</b>';
-    const msg = `🏢 <b>Staff Attendance</b> — ${state.settings.school}\n\n` +
-      `👤 ឈ្មោះ: <b>${name}</b>\n` +
-      `💼 តួនាទី: <b>${role}</b>\n` +
-      `📍 សកម្មភាព: <b>Check-In 🟢 (ស្គេន${scanNum===2?'ទី2':'ដំបូង'})</b>\n` +
-      `⏰ ម៉ោង: <code>${timeStr}</code>\n` +
-      `📅 ${now.toLocaleDateString('km-KH')}` + lateLabel;
+
+    // 🔔 Individual notification to Telegram
+    const lateTag = lateMin > 0 ? `⚠️ យឺត: ${fmtLate(lateMin)}` : `✅ ទាន់ម៉ោង`;
+    const msg = `🟢 <b>Check-In បានទទួល!</b>\n` +
+      `👤 <b>${name}</b>\n` +
+      `💼 ${role}\n` +
+      `⏰ ${timeStr}  |  ស្គេន${scanNum===2?'ទី2':'ដំបូង'}\n` +
+      lateTag;
     await sendTelegram(msg);
-    showStatus(statusId, 'ok', `✅ Check-In ជោគជ័យ!${lateMin>0?' (យឺត '+fmtLate(lateMin)+')':''}`);
+
+    showStatus(statusId, 'ok', `✅ Check-In ជោគជ័យ! (${checkedInCount}/${total})${lateMin>0?' ⚠️ យឺត '+fmtLate(lateMin):''}`);
+
+    // 🎉 All staff scanned → send complete summary immediately
+    if (scanNum === 1 && checkedInCount === total) {
+      await sendAllScannedSummary();
+    }
+
   } else {
     if (!rec.checkIn) { showStatus(statusId, 'warn', '⚠️ មិនទាន់ Check-In!'); return; }
     if (rec.checkOut) { showStatus(statusId, 'warn', '⚠️ Check-Out រួចហើយ!'); return; }
     rec.checkOut = timeStr;
     addLog('out', `${name} Check-Out ${timeStr}`);
-    const msg = `🏢 <b>Staff Attendance</b> — ${state.settings.school}\n\n` +
-      `👤 ឈ្មោះ: <b>${name}</b>\n💼 ${role}\n` +
-      `📍 <b>Check-Out 🔵</b>\n⏰ <code>${timeStr}</code>`;
+    saveAll();
+
+    const checkedOutCount = Object.values(state.todayRecords).filter(r => r.checkOut).length;
+    const msg = `🔵 <b>Check-Out បានទទួល!</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━\n` +
+      `👤 <b>${name}</b>\n💼 ${role}\n` +
+      `⏰ <code>${timeStr}</code>\n\n` +
+      `📊 Check-Out: <b>${checkedOutCount}/${total}</b> នាក់`;
     await sendTelegram(msg);
-    showStatus(statusId, 'ok', '✅ Check-Out ជោគជ័យ!');
+    showStatus(statusId, 'ok', `✅ Check-Out ជោគជ័យ! (${checkedOutCount}/${total})`);
+
+    // 🎉 All staff checked out
+    if (checkedOutCount === total) {
+      const doneMsg = `🎊 <b>បុគ្គលិកទាំងអស់ Check-Out រួចហើយ!</b>\n` +
+        `🏫 ${state.settings.school}\n` +
+        `⏰ ${timeStr}  |  📅 ${now.toLocaleDateString('km-KH')}`;
+      await sendTelegram(doneMsg);
+    }
   }
 
-  saveAll();
   refreshDashboard();
+}
+
+// ─── PROGRESS BAR TEXT (emoji style) ────────────────────────
+function buildProgressBar(current, total) {
+  const filled = Math.round((current / total) * 10);
+  return '🟩'.repeat(filled) + '⬜'.repeat(10 - filled);
+}
+
+// ─── ALL STAFF SCANNED → INSTANT SUMMARY ─────────────────────
+async function sendAllScannedSummary() {
+  const records = state.todayRecords;
+  const presentNames = Object.keys(records).filter(n => records[n].checkIn);
+  const lateStaff = presentNames.filter(n => (records[n].lateMin || 0) > 0);
+  const onTimeStaff = presentNames.filter(n => !(records[n].lateMin > 0));
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true });
+  const total = state.staffList.length;
+
+  let msg = `🎉 <b>បុគ្គលិកទាំងអស់ស្គេនរួចហើយ!</b>\n`;
+  msg += `🏫 ${state.settings.school}  |  ⏰ ${timeStr}\n`;
+  msg += `📊 សរុប: <b>${total}/${total} (100%)</b>\n`;
+  msg += `✅ ទាន់ម៉ោង: <b>${onTimeStaff.length} នាក់</b>  |  ⚠️ យឺត: <b>${lateStaff.length} នាក់</b>\n`;
+
+  if (lateStaff.length > 0) {
+    msg += `\n⚠️ <b>បុគ្គលិកមកយឺត:</b>\n`;
+    lateStaff.forEach((name, i) => {
+      const rec = records[name];
+      const s = state.staffList.find(x => x.name === name);
+      const emoji = (rec.lateMin||0) > 60 ? '🔴' : '🟠';
+      msg += `${emoji} ${i+1}. <b>${name}</b>`;
+      if (s?.role) msg += `  💼 ${s.role}`;
+      msg += `\n   ⏰ យឺត: <b>${fmtLate(rec.lateMin)}</b>  🕐 ${rec.checkIn}\n`;
+    });
+  }
+
+  msg += `\n✅ <b>ទាន់ម៉ោង:</b>\n`;
+  onTimeStaff.forEach((name, i) => {
+    msg += `${i+1}. ${name}  🕐 ${records[name].checkIn}\n`;
+  });
+
+  await sendTelegram(msg);
+  addLog('auto', '🎉 All Staff Scanned — Summary ផ្ញើទៅ Telegram!');
 }
 
 // ─── LOG ─────────────────────────────────────────────────────
