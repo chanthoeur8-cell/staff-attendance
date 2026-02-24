@@ -8,126 +8,64 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
-            --bg: #0a0f1e; --card: #111827; --card2: #1a2235;
-            --accent: #00e5ff; --green: #10b981; --red: #ef4444;
-            --orange: #f59e0b; --text: #f1f5f9; --muted: #64748b;
-            --border: rgba(255,255,255,0.07);
+            --bg: #0a0f1e; --card: #111827; --accent: #00e5ff; 
+            --green: #10b981; --red: #ef4444; --text: #f1f5f9; 
+            --muted: #64748b; --border: rgba(255,255,255,0.07);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Grotesk', 'Noto Sans Khmer', sans-serif; }
-        body { background: var(--bg); color: var(--text); padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-
-        /* Navigation Tabs */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
-        .tab-btn.active { background: var(--accent); color: #000; font-weight: bold; }
-
-        .section { display: none; }
-        .section.active { display: block; }
-
-        /* Dashboard & Stats */
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--border); text-align: center; }
-        .stat-num { font-size: 32px; font-weight: 700; color: var(--accent); }
-        
-        /* Table Style */
-        .card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th { padding: 12px; text-align: left; color: var(--muted); border-bottom: 1px solid var(--border); font-size: 12px; }
-        td { padding: 12px; border-bottom: 1px solid var(--border); }
-
-        /* Badges */
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-        .present { background: rgba(16,185,129,0.15); color: var(--green); }
-        .late { background: rgba(245,158,11,0.15); color: var(--orange); }
-        .absent { background: rgba(239,68,68,0.15); color: var(--red); }
-
-        /* QR Section */
-        #qr-container { text-align: center; padding: 40px; }
-        #qrcode { background: white; padding: 20px; display: inline-block; border-radius: 12px; margin: 20px 0; }
-
-        /* Form for Mobile Scan */
-        .scan-form { max-width: 400px; margin: 0 auto; background: var(--card2); padding: 30px; border-radius: 20px; }
-        select, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; font-size: 16px; }
+        body { background: var(--bg); color: var(--text); padding: 15px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { background: var(--card); border-radius: 15px; border: 1px solid var(--border); padding: 20px; text-align: center; margin-bottom: 20px; }
+        #qrcode { background: white; padding: 10px; display: inline-block; border-radius: 10px; margin: 15px 0; }
+        .scan-box { background: #1a2235; padding: 20px; border-radius: 15px; border: 1px solid var(--accent); }
+        select, .btn { width: 100%; padding: 15px; margin-top: 10px; border-radius: 10px; font-size: 16px; border: none; font-weight: bold; cursor: pointer; }
         select { background: var(--bg); color: white; border: 1px solid var(--border); }
-        .btn-submit { background: var(--accent); border: none; font-weight: bold; cursor: pointer; }
-        
-        #clock { font-size: 24px; color: var(--accent); font-weight: bold; text-align: right; margin-bottom: 20px; }
+        .btn-in { background: var(--green); color: white; }
+        .btn-out { background: #7c3aed; color: white; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 20px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="clock">00:00:00</div>
+    <h2 style="text-align:center; color:var(--accent); margin-bottom:15px;">MIKIDS ATTENDANCE</h2>
 
-    <div id="admin-view">
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
-            <button class="tab-btn" onclick="switchTab('qr-gen')">🔲 QR Code</button>
-            <button class="tab-btn" onclick="resetToday()" style="color:var(--red)">🔄 Reset</button>
-        </div>
-
-        <div id="dashboard" class="section active">
-            <div class="stat-grid">
-                <div class="stat-card"><div class="stat-num" id="countPresent">0</div><div class="stat-label">វត្តមាន</div></div>
-                <div class="stat-card"><div class="stat-num" id="countLate">0</div><div class="stat-label">យឺត</div></div>
-                <div class="stat-card"><div class="stat-num" id="countAbsent">0</div><div class="stat-label">អវត្តមាន</div></div>
-            </div>
-            <div class="card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ឈ្មោះបុគ្គលិក</th>
-                            <th>តួនាទី</th>
-                            <th>ស្ថានភាព</th>
-                            <th>ម៉ោងចូល</th>
-                            <th>ម៉ោងចេញ</th>
-                            <th>យឺតជាក់ស្តែង</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attendance-list"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="qr-gen" class="section">
-            <div class="card" id="qr-container">
-                <h2>Scan QR សម្រាប់វត្តមាន</h2>
-                <p style="color:var(--muted)">ឱ្យបុគ្គលិកស្កេនរូបនេះដើម្បី Check-In/Out</p>
-                <div id="qrcode"></div>
-                <p id="qr-link" style="font-size:12px; color:var(--accent); cursor:pointer" onclick="openScanPage()">បើកទំព័រស្កេន (Mobile View)</p>
-            </div>
-        </div>
+    <div class="card">
+        <h3>QR សម្រាប់ស្កេន</h3>
+        <div id="qrcode"></div>
+        <p style="font-size:12px; color:var(--muted)">ស្កេនដើម្បីបើកទំព័រនេះលើទូរស័ព្ទ</p>
     </div>
 
-    <div id="scan-view" class="section">
-        <div class="scan-form">
-            <h2 style="text-align:center; margin-bottom:10px">MIKIDS Check-In</h2>
-            <p style="text-align:center; color:var(--muted); margin-bottom:20px" id="mobile-date"></p>
-            
-            <label>ជ្រើសរើសឈ្មោះរបស់អ្នក:</label>
-            <select id="staff-select"></select>
-
-            <div style="display:flex; gap:10px; margin-top:20px">
-                <button class="btn-submit" onclick="submitAttendance('in')" style="background:var(--green); color:white">✅ Check-In</button>
-                <button class="btn-submit" onclick="submitAttendance('out')" style="background:var(--accent2); color:white; background-color: #7c3aed;">🔵 Check-Out</button>
-            </div>
-            <p id="status-msg" style="margin-top:15px; text-align:center"></p>
-            <button class="tab-btn" onclick="switchTab('dashboard')" style="margin-top:20px; width:100%">ត្រលប់ទៅ Dashboard</button>
-        </div>
+    <div class="scan-box">
+        <label>ជ្រើសរើសឈ្មោះបុគ្គលិក:</label>
+        <select id="staff-name"></select>
+        <button class="btn btn-in" onclick="submitAttendance('in')">✅ ស្កេនចូល (Check-In)</button>
+        <button class="btn btn-out" onclick="submitAttendance('out')">🔵 ស្កេនចេញ (Check-Out)</button>
     </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ឈ្មោះ</th>
+                <th>ចូល</th>
+                <th>ចេញ</th>
+                <th>យឺត</th>
+            </tr>
+        </thead>
+        <tbody id="attendance-list"></tbody>
+    </table>
 </div>
 
 <script>
-// --- ការកំណត់ (Configuration) ---
 const CONFIG = {
     token: '8242266919:AAGE6uMJ_-UvM-3KBZkJVFhJyTLvcTVW5tQ',
     chatId: '-1003584563383',
-    lateTime: '07:05',
-    schoolName: 'MIKIDS SCHOOL'
+    lateTime: '07:05', // ម៉ោងកំណត់
+    githubLink: 'https://chanthoeur8-cell.github.io/Attendance-staff/'
 };
 
-const STAFF_DATA = [
+const STAFF_LIST = [
     { name: "Chanthoeurn chhoeurn", role: "IT Support" },
     { name: "Ashley villela", role: "English Teacher" },
     { name: "វិន សេរីភាព", role: "Assistant Teacher" },
@@ -146,88 +84,61 @@ const STAFF_DATA = [
     { name: "Dorn Sreyneth", role: "English Teacher" }
 ];
 
-let attendance = JSON.parse(localStorage.getItem('mikids_records')) || {};
+let records = JSON.parse(localStorage.getItem('mikids_db')) || {};
 
-// --- មុខងារនាឡិកា ---
-function updateClock() {
-    const now = new Date();
-    document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false });
-    const dateStr = now.toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    if(document.getElementById('mobile-date')) document.getElementById('mobile-date').textContent = dateStr;
-}
-setInterval(updateClock, 1000);
-
-// --- មុខងារប្តូរ Tab ---
-function switchTab(tabId) {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    renderDashboard();
-}
-
-function openScanPage() {
-    switchTab('scan-view');
-}
-
-// --- បង្កើត QR Code ---
-function generateQR() {
-    const currentUrl = window.location.href.split('#')[0] + '#scan';
-    new QRCode(document.getElementById("qrcode"), {
-        text: currentUrl,
-        width: 200,
-        height: 200
-    });
-}
-
-// --- គណនាម៉ោងយឺត ---
-function formatLate(mins) {
-    if (mins <= 0) return "-";
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
+function formatLate(totalMins) {
+    if (totalMins <= 0) return "-";
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
     return h > 0 ? `${h} ម៉ោង ${m} នាទី` : `${m} នាទី`;
 }
 
-// --- បង្ហាញតារាង Dashboard ---
-function renderDashboard() {
+function renderTable() {
     const list = document.getElementById('attendance-list');
     list.innerHTML = '';
-    let p = 0, l = 0;
-
-    STAFF_DATA.forEach(staff => {
-        const record = attendance[staff.name] || { in: '-', out: '-', late: 0, status: 'absent' };
-        if (record.status !== 'absent') p++;
-        if (record.late > 0) l++;
-
-        let badge = `<span class="badge absent">អវត្តមាន</span>`;
-        if (record.status === 'present') {
-            badge = record.late > 0 ? `<span class="badge late">យឺត</span>` : `<span class="badge present">វត្តមាន</span>`;
-        }
-
-        list.innerHTML += `
-            <tr>
-                <td><strong>${staff.name}</strong></td>
-                <td style="font-size:12px; color:var(--muted)">${staff.role}</td>
-                <td>${badge}</td>
-                <td>${record.in}</td>
-                <td>${record.out}</td>
-                <td style="color:${record.late > 0 ? 'var(--red)' : 'inherit'}">${formatLate(record.late)}</td>
-            </tr>
-        `;
+    STAFF_LIST.forEach(s => {
+        const r = records[s.name] || { in: '-', out: '-', late: 0 };
+        list.innerHTML += `<tr>
+            <td><b>${s.name}</b></td>
+            <td>${r.in}</td>
+            <td>${r.out}</td>
+            <td style="color:${r.late > 0 ? 'var(--red)' : 'inherit'}">${formatLate(r.late)}</td>
+        </tr>`;
     });
-
-    document.getElementById('countPresent').textContent = p;
-    document.getElementById('countLate').textContent = l;
-    document.getElementById('countAbsent').textContent = STAFF_DATA.length - p;
-
-    // បំពេញឈ្មោះក្នុង Select សម្រាប់ Mobile
-    const select = document.getElementById('staff-select');
-    if(select.options.length <= 1) {
-        select.innerHTML = '<option value="">-- ជ្រើសរើសឈ្មោះ --</option>';
-        STAFF_DATA.forEach(s => select.innerHTML += `<option value="${s.name}">${s.name}</option>`);
-    }
 }
 
-// --- ផ្ញើទៅ Telegram ---
+async function submitAttendance(type) {
+    const name = document.getElementById('staff-name').value;
+    if(!name) return alert("សូមជ្រើសរើសឈ្មោះ!");
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const time24 = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString('km-KH');
+    const staff = STAFF_LIST.find(s => s.name === name);
+
+    if(type === 'in') {
+        if(records[name]) return alert("អ្នកបាន Check-In រួចហើយ!");
+        const [th, tm] = CONFIG.lateTime.split(':').map(Number);
+        const [ch, cm] = time24.split(':').map(Number);
+        let lateMins = (ch * 60 + cm) - (th * 60 + tm);
+        lateMins = lateMins > 0 ? lateMins : 0;
+
+        records[name] = { in: timeStr, out: '-', late: lateMins };
+        
+        sendToTelegram(`🔔 <b>CHECK-IN | MIKIDS</b>\n\n📅 កាលបរិច្ឆេទ: ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n💼 តួនាទី: <i>${staff.role}</i>\n⏰ ម៉ោងចូល: ${timeStr}\n${lateMins > 0 ? '⚠️ យឺត: '+formatLate(lateMins) : '✅ ទាន់ពេល'}`);
+    } else {
+        if(!records[name]) return alert("សូមស្កេនចូលជាមុនសិន!");
+        if(records[name].out !== '-') return alert("អ្នកបានស្កេនចេញរួចហើយ!");
+        records[name].out = timeStr;
+        sendToTelegram(`🔔 <b>CHECK-OUT | MIKIDS</b>\n\n📅 កាលបរិច្ឆេទ: ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n💼 តួនាទី: <i>${staff.role}</i>\n⏰ ម៉ោងចេញ: ${timeStr}`);
+    }
+
+    localStorage.setItem('mikids_db', JSON.stringify(records));
+    alert("ជោគជ័យ!");
+    renderTable();
+}
+
 function sendToTelegram(msg) {
     fetch(`https://api.telegram.org/bot${CONFIG.token}/sendMessage`, {
         method: 'POST',
@@ -236,58 +147,11 @@ function sendToTelegram(msg) {
     });
 }
 
-// --- ស្កេន Check-In/Out ---
-function submitAttendance(type) {
-    const name = document.getElementById('staff-select').value;
-    if (!name) return alert("សូមជ្រើសរើសឈ្មោះ!");
-
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('km-KH');
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const time24 = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-    const staff = STAFF_DATA.find(s => s.name === name);
-
-    if (type === 'in') {
-        if (attendance[name]) return alert("អ្នកបាន Check-In រួចហើយ!");
-        
-        const [targetH, targetM] = CONFIG.lateTime.split(':').map(Number);
-        const [currH, currM] = time24.split(':').map(Number);
-        let lateMins = (currH * 60 + currM) - (targetH * 60 + targetM);
-        lateMins = lateMins > 0 ? lateMins : 0;
-
-        attendance[name] = { in: timeStr, out: '-', late: lateMins, status: 'present' };
-        
-        const lateMsg = lateMins > 0 ? `⚠️ យឺត: <b>${formatLate(lateMins)}</b>` : `✅ ទាន់ពេល`;
-        sendToTelegram(`🔔 <b>CHECK-IN | ${CONFIG.schoolName}</b>\n\n📅 កាលបរិច្ឆេទ: ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n💼 តួនាទី: <i>${staff.role}</i>\n⏰ ម៉ោងចូល: ${timeStr}\n${lateMsg}`);
-        
-        alert("Check-In ជោគជ័យ!");
-    } else {
-        if (!attendance[name]) return alert("សូម Check-In ជាមុនសិន!");
-        if (attendance[name].out !== '-') return alert("អ្នកបាន Check-Out រួចហើយ!");
-
-        attendance[name].out = timeStr;
-        sendToTelegram(`🔔 <b>CHECK-OUT | ${CONFIG.schoolName}</b>\n\n📅 កាលបរិច្ឆេទ: ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n💼 តួនាទី: <i>${staff.role}</i>\n⏰ ម៉ោងចេញ: ${timeStr}`);
-        
-        alert("Check-Out ជោគជ័យ!");
-    }
-
-    localStorage.setItem('mikids_records', JSON.stringify(attendance));
-    renderDashboard();
-}
-
-function resetToday() {
-    if(confirm("តើអ្នកចង់លុបទិន្នន័យថ្ងៃនេះមែនទេ?")) {
-        attendance = {};
-        localStorage.removeItem('mikids_records');
-        renderDashboard();
-    }
-}
-
-// ចាប់ផ្តើម
 window.onload = () => {
-    generateQR();
-    renderDashboard();
-    updateClock();
+    new QRCode(document.getElementById("qrcode"), { text: CONFIG.githubLink, width: 150, height: 150 });
+    const select = document.getElementById('staff-name');
+    select.innerHTML = '<option value="">-- រើសឈ្មោះរបស់អ្នក --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    renderTable();
 };
 </script>
 </body>
