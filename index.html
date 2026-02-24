@@ -22,6 +22,7 @@
         select { background: var(--bg); color: white; border: 1px solid var(--border); }
         .btn-in { background: var(--green); color: white; }
         .btn-out { background: #7c3aed; color: white; }
+        .btn-summary { background: var(--accent); color: #000; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 20px; }
         th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
     </style>
@@ -44,13 +45,15 @@
         <button class="btn btn-out" onclick="submitAttendance('out')">🔵 ស្កេនចេញ (Check-Out)</button>
     </div>
 
+    <button class="btn btn-summary" onclick="sendSummaryToTelegram()">📤 ផ្ញើរបាយការណ៍សរុបទៅ Telegram</button>
+
     <table>
         <thead>
             <tr>
                 <th>ឈ្មោះ</th>
                 <th>ចូល</th>
                 <th>ចេញ</th>
-                <th>យឺត</th>
+                <th>យឺតជាក់ស្តែង</th>
             </tr>
         </thead>
         <tbody id="attendance-list"></tbody>
@@ -61,7 +64,7 @@
 const CONFIG = {
     token: '8242266919:AAGE6uMJ_-UvM-3KBZkJVFhJyTLvcTVW5tQ',
     chatId: '-1003584563383',
-    lateTime: '07:05', // ម៉ោងកំណត់
+    lateTime: '07:05', 
     githubLink: 'https://chanthoeur8-cell.github.io/Attendance-staff/'
 };
 
@@ -105,6 +108,29 @@ function renderTable() {
             <td style="color:${r.late > 0 ? 'var(--red)' : 'inherit'}">${formatLate(r.late)}</td>
         </tr>`;
     });
+}
+
+// មុខងារផ្ញើរបាយការណ៍សរុប
+function sendSummaryToTelegram() {
+    const dateStr = new Date().toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    let summaryMsg = `📊 <b>របាយការណ៍វត្តមានសរុប</b>\n📅 <b>ថ្ងៃទី:</b> ${dateStr}\n\n`;
+
+    let hasData = false;
+    STAFF_LIST.forEach((s, index) => {
+        const r = records[s.name];
+        if (r) {
+            hasData = true;
+            const lateInfo = r.late > 0 ? ` (យឺត: ${formatLate(r.late)})` : " (ទាន់ពេល)";
+            summaryMsg += `${index + 1}. ✅ <b>${s.name}</b>\n   In: ${r.in} | Out: ${r.out}${lateInfo}\n`;
+        } else {
+            summaryMsg += `${index + 1}. ❌ <b>${s.name}</b>: អវត្តមាន\n`;
+        }
+    });
+
+    if (!hasData) return alert("មិនទាន់មានទិន្នន័យសម្រាប់ផ្ញើនៅឡើយទេ!");
+
+    sendToTelegram(summaryMsg);
+    alert("របាយការណ៍សរុបត្រូវបានផ្ញើទៅ Telegram រួចរាល់!");
 }
 
 async function submitAttendance(type) {
