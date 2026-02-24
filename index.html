@@ -14,17 +14,26 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Grotesk', 'Noto Sans Khmer', sans-serif; }
         body { background: var(--bg); color: var(--text); padding: 15px; }
-        .container { max-width: 600px; margin: 0 auto; }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        @media screen and (max-width: 600px) { .admin-only { display: none; } }
+
         .card { background: var(--card); border-radius: 15px; border: 1px solid var(--border); padding: 20px; text-align: center; margin-bottom: 20px; }
         #qrcode { background: white; padding: 10px; display: inline-block; border-radius: 10px; margin: 15px 0; }
         .scan-box { background: #1a2235; padding: 20px; border-radius: 15px; border: 1px solid var(--accent); }
         select, .btn { width: 100%; padding: 15px; margin-top: 10px; border-radius: 10px; font-size: 16px; border: none; font-weight: bold; cursor: pointer; }
         select { background: var(--bg); color: white; border: 1px solid var(--border); }
-        .btn-in { background: var(--green); color: white; }
-        .btn-out { background: #7c3aed; color: white; }
+        
+        .btn-morning { background: var(--green); color: white; }
+        .btn-afternoon { background: #7c3aed; color: white; }
+        .btn-checkout { background: var(--red); color: white; }
         .btn-summary { background: var(--accent); color: #000; margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 20px; }
-        th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+        
+        .table-wrap { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; background: var(--card); min-width: 600px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        th { background: #1f2937; color: var(--accent); }
+        .late-text { color: var(--red); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -32,39 +41,46 @@
 <div class="container">
     <h2 style="text-align:center; color:var(--accent); margin-bottom:15px;">MIKIDS ATTENDANCE</h2>
 
-    <div class="card">
-        <h3>QR សម្រាប់ស្កេន</h3>
+    <div class="card admin-only">
+        <h3>QR សម្រាប់ស្កេន (Admin)</h3>
         <div id="qrcode"></div>
-        <p style="font-size:12px; color:var(--muted)">ស្កេនដើម្បីបើកទំព័រនេះលើទូរស័ព្ទ</p>
     </div>
 
     <div class="scan-box">
         <label>ជ្រើសរើសឈ្មោះបុគ្គលិក:</label>
         <select id="staff-name"></select>
-        <button class="btn btn-in" onclick="submitAttendance('in')">✅ ស្កេនចូល (Check-In)</button>
-        <button class="btn btn-out" onclick="submitAttendance('out')">🔵 ស្កេនចេញ (Check-Out)</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <button class="btn btn-morning" onclick="submitAttendance('morning')">☀️ Morning</button>
+            <button class="btn btn-afternoon" onclick="submitAttendance('afternoon')">🌤️ Afternoon</button>
+            <button class="btn btn-checkout" onclick="submitAttendance('checkout')">🚪 CheckOut</button>
+        </div>
     </div>
 
-    <button class="btn btn-summary" onclick="sendSummaryToTelegram()">📤 ផ្ញើរបាយការណ៍សរុបទៅ Telegram</button>
+    <button class="btn btn-summary admin-only" onclick="sendSummaryToTelegram()">📤 ផ្ញើរបាយការណ៍សរុបទៅ Telegram</button>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ឈ្មោះ</th>
-                <th>ចូល</th>
-                <th>ចេញ</th>
-                <th>យឺត</th>
-            </tr>
-        </thead>
-        <tbody id="attendance-list"></tbody>
-    </table>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>CheckIn (AM)</th>
+                    <th>Late (AM)</th>
+                    <th>CheckIn (PM)</th>
+                    <th>Late (PM)</th>
+                    <th>CheckOut</th>
+                </tr>
+            </thead>
+            <tbody id="attendance-list"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
 const CONFIG = {
     token: '8242266919:AAGE6uMJ_-UvM-3KBZkJVFhJyTLvcTVW5tQ',
     chatId: '-1003584563383',
-    lateTime: '07:05', 
+    morningLate: '07:05',   
+    afternoonLate: '13:05', 
     githubLink: 'https://chanthoeur8-cell.github.io/Attendance-staff/'
 };
 
@@ -87,55 +103,34 @@ const STAFF_LIST = [
     { name: "Dorn Sreyneth", role: "English Teacher" }
 ];
 
-let records = JSON.parse(localStorage.getItem('mikids_db')) || {};
+let records = JSON.parse(localStorage.getItem('mikids_v2_db')) || {};
 
 function formatLate(totalMins) {
     if (totalMins <= 0) return "-";
     const h = Math.floor(totalMins / 60);
     const m = totalMins % 60;
-    return h > 0 ? `${h} ម៉ោង ${m} នាទី` : `${m} នាទី`;
+    return h > 0 ? `${h}ម ${m}ន` : `${m}ន`;
 }
 
 function renderTable() {
     const list = document.getElementById('attendance-list');
     list.innerHTML = '';
     STAFF_LIST.forEach(s => {
-        const r = records[s.name] || { in: '-', out: '-', late: 0 };
+        const r = records[s.name] || { morning: null, afternoon: null, checkout: null };
         list.innerHTML += `<tr>
             <td><b>${s.name}</b></td>
-            <td>${r.in}</td>
-            <td>${r.out}</td>
-            <td style="color:${r.late > 0 ? 'var(--red)' : 'inherit'}">${formatLate(r.late)}</td>
+            <td>${r.morning ? r.morning.time : '-'}</td>
+            <td class="late-text">${r.morning ? formatLate(r.morning.late) : '-'}</td>
+            <td>${r.afternoon ? r.afternoon.time : '-'}</td>
+            <td class="late-text">${r.afternoon ? formatLate(r.afternoon.late) : '-'}</td>
+            <td>${r.checkout ? r.checkout : '-'}</td>
         </tr>`;
     });
 }
 
-// មុខងារផ្ញើរបាយការណ៍សរុប
-function sendSummaryToTelegram() {
-    const dateStr = new Date().toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    let summaryMsg = `📊 <b>របាយការណ៍វត្តមានសរុប</b>\n📅 <b>ថ្ងៃទី:</b> ${dateStr}\n\n`;
-
-    let hasData = false;
-    STAFF_LIST.forEach((s, index) => {
-        const r = records[s.name];
-        if (r) {
-            hasData = true;
-            const lateInfo = r.late > 0 ? ` (យឺត: ${formatLate(r.late)})` : " (ទាន់ពេល)";
-            summaryMsg += `${index + 1}. ✅ <b>${s.name}</b>\n   In: ${r.in} | Out: ${r.out}${lateInfo}\n`;
-        } else {
-            summaryMsg += `${index + 1}. ❌ <b>${s.name}</b>: អវត្តមាន\n`;
-        }
-    });
-
-    if (!hasData) return alert("មិនទាន់មានទិន្នន័យសម្រាប់ផ្ញើនៅឡើយទេ!");
-
-    sendToTelegram(summaryMsg);
-    alert("របាយការណ៍សរុបត្រូវបានផ្ញើទៅ Telegram រួចរាល់!");
-}
-
 async function submitAttendance(type) {
     const name = document.getElementById('staff-name').value;
-    if(!name) return alert("SelectName!");
+    if(!name) return alert("សូមជ្រើសរើសឈ្មោះ!");
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -143,26 +138,57 @@ async function submitAttendance(type) {
     const dateStr = now.toLocaleDateString('km-KH');
     const staff = STAFF_LIST.find(s => s.name === name);
 
-    if(type === 'in') {
-        if(records[name]) return alert("អ្នកបាន Check-In រួចហើយ!");
-        const [th, tm] = CONFIG.lateTime.split(':').map(Number);
-        const [ch, cm] = time24.split(':').map(Number);
-        let lateMins = (ch * 60 + cm) - (th * 60 + tm);
-        lateMins = lateMins > 0 ? lateMins : 0;
+    if (!records[name]) records[name] = { morning: null, afternoon: null, checkout: null };
 
-        records[name] = { in: timeStr, out: '-', late: lateMins };
-        
-        sendToTelegram(`🔔 <b>CHECK-IN | MIKIDS</b>\n\n📅 កាលបរិច្ឆេទ: ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n💼 តួនាទី: <i>${staff.role}</i>\n⏰ ម៉ោងចូល: ${timeStr}\n${lateMins > 0 ? '⚠️ យឺត: '+formatLate(lateMins) : '✅ ទាន់ពេល'}`);
+    let lateMins = 0;
+    let label = "";
+
+    if (type === 'morning') {
+        if (records[name].morning) return alert("អ្នកបានស្កេនព្រឹករួចហើយ!");
+        const [th, tm] = CONFIG.morningLate.split(':').map(Number);
+        const [ch, cm] = time24.split(':').map(Number);
+        lateMins = Math.max(0, (ch * 60 + cm) - (th * 60 + tm));
+        records[name].morning = { time: timeStr, late: lateMins };
+        label = "☀️ Morning Check-In";
+    } else if (type === 'afternoon') {
+        if (records[name].afternoon) return alert("អ្នកបានស្កេនថ្ងៃរួចហើយ!");
+        const [th, tm] = CONFIG.afternoonLate.split(':').map(Number);
+        const [ch, cm] = time24.split(':').map(Number);
+        lateMins = Math.max(0, (ch * 60 + cm) - (th * 60 + tm));
+        records[name].afternoon = { time: timeStr, late: lateMins };
+        label = "🌤️ Afternoon Check-In";
     } else {
-        if(!records[name]) return alert("សូមស្កេនចូលជាមុនសិន!");
-        if(records[name].out !== '-') return alert("អ្នកបានស្កេនចេញរួចហើយ!");
-        records[name].out = timeStr;
-        sendToTelegram(`🔔 <b>CHECK-OUT | MIKIDS</b>\n\n📅 កាលបរិច្ឆេទ: ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n💼 តួនាទី: <i>${staff.role}</i>\n⏰ ម៉ោងចេញ: ${timeStr}`);
+        if (records[name].checkout) return alert("អ្នកបានស្កេនចេញរួចហើយ!");
+        records[name].checkout = timeStr;
+        label = "🚪 Check-Out";
     }
 
-    localStorage.setItem('mikids_db', JSON.stringify(records));
-    alert("ជោគជ័យ!");
+    const lateInfo = (type !== 'checkout' && lateMins > 0) ? `⚠️ យឺត: ${formatLate(lateMins)}` : (type !== 'checkout' ? '✅ ទាន់ពេល' : '');
+    sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n⏰ ម៉ោង: ${timeStr}\n${lateInfo}`);
+    
+    localStorage.setItem('mikids_v2_db', JSON.stringify(records));
+    alert("ស្កេនជោគជ័យ!");
     renderTable();
+}
+
+function sendSummaryToTelegram() {
+    const dateStr = new Date().toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    let msg = `📊 <b>របាយការណ៍សរុប</b>\n📅 ${dateStr}\n\n`;
+
+    STAFF_LIST.forEach((s, i) => {
+        const r = records[s.name];
+        if (r) {
+            const m = r.morning ? r.morning.time : '-';
+            const a = r.afternoon ? r.afternoon.time : '-';
+            const o = r.checkout ? r.checkout : '-';
+            msg += `${i+1}. ✅ <b>${s.name}</b>\n   AM: ${m} | PM: ${a} | Out: ${o}\n`;
+        } else {
+            msg += `${i+1}. ❌ <b>${s.name}</b>: អវត្តមាន\n`;
+        }
+    });
+
+    sendToTelegram(msg);
+    alert("ផ្ញើរបាយការណ៍សរុបរួចរាល់!");
 }
 
 function sendToTelegram(msg) {
@@ -176,11 +202,9 @@ function sendToTelegram(msg) {
 window.onload = () => {
     new QRCode(document.getElementById("qrcode"), { text: CONFIG.githubLink, width: 150, height: 150 });
     const select = document.getElementById('staff-name');
-    select.innerHTML = '<option value="">-- SelectName --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    select.innerHTML = '<option value="">-- រើសឈ្មោះ --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
     renderTable();
 };
 </script>
 </body>
 </html>
-
-
