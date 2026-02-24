@@ -1,1195 +1,294 @@
 <!DOCTYPE html>
 <html lang="km">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MIKIDS Attendance</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<style>
-:root {
-  --bg: #0a0f1e;
-  --card: #111827;
-  --card2: #1a2235;
-  --accent: #00e5ff;
-  --accent2: #7c3aed;
-  --green: #10b981;
-  --red: #ef4444;
-  --orange: #f59e0b;
-  --text: #f1f5f9;
-  --muted: #64748b;
-  --border: rgba(255,255,255,0.07);
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'Space Grotesk', 'Noto Sans Khmer', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIKIDS Attendance System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg: #0a0f1e; --card: #111827; --card2: #1a2235;
+            --accent: #00e5ff; --green: #10b981; --red: #ef4444;
+            --orange: #f59e0b; --text: #f1f5f9; --muted: #64748b;
+            --border: rgba(255,255,255,0.07);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Grotesk', 'Noto Sans Khmer', sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
 
-/* ─── LAYOUT ─── */
-.app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
-.sidebar {
-  background: var(--card);
-  border-right: 1px solid var(--border);
-  padding: 28px 20px;
-  display: flex; flex-direction: column; gap: 8px;
-  position: sticky; top: 0; height: 100vh; overflow-y: auto;
-}
-.main { padding: 28px; overflow-y: auto; }
+        /* Navigation Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+        .tab-btn.active { background: var(--accent); color: #000; font-weight: bold; }
 
-/* ─── SIDEBAR ─── */
-.logo {
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 4px 20px; border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
-}
-.logo-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-}
-.logo-text { font-size: 15px; font-weight: 700; line-height: 1.2; }
-.logo-sub { font-size: 10px; color: var(--muted); font-weight: 400; }
+        .section { display: none; }
+        .section.active { display: block; }
 
-.nav-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 8px 4px 4px; }
-.nav-btn {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 10px; cursor: pointer;
-  font-size: 13px; color: var(--muted); transition: all 0.2s;
-  border: none; background: none; width: 100%; text-align: left;
-}
-.nav-btn:hover { background: var(--card2); color: var(--text); }
-.nav-btn.active { background: rgba(0,229,255,0.1); color: var(--accent); border: 1px solid rgba(0,229,255,0.2); }
-.nav-btn .icon { font-size: 16px; width: 22px; text-align: center; }
+        /* Dashboard & Stats */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--border); text-align: center; }
+        .stat-num { font-size: 32px; font-weight: 700; color: var(--accent); }
+        
+        /* Table Style */
+        .card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { padding: 12px; text-align: left; color: var(--muted); border-bottom: 1px solid var(--border); font-size: 12px; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); }
 
-/* ─── CLOCK ─── */
-.clock-box {
-  margin-top: auto; background: var(--card2); border-radius: 12px;
-  padding: 16px; text-align: center; border: 1px solid var(--border);
-}
-.clock-time { font-size: 28px; font-weight: 700; letter-spacing: 2px; color: var(--accent); font-variant-numeric: tabular-nums; }
-.clock-date { font-size: 11px; color: var(--muted); margin-top: 4px; }
+        /* Badges */
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .present { background: rgba(16,185,129,0.15); color: var(--green); }
+        .late { background: rgba(245,158,11,0.15); color: var(--orange); }
+        .absent { background: rgba(239,68,68,0.15); color: var(--red); }
 
-/* ─── TABS ─── */
-.tab-section { display: none; }
-.tab-section.active { display: block; }
+        /* QR Section */
+        #qr-container { text-align: center; padding: 40px; }
+        #qrcode { background: white; padding: 20px; display: inline-block; border-radius: 12px; margin: 20px 0; }
 
-/* ─── HEADER BAR ─── */
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-.page-title { font-size: 22px; font-weight: 700; }
-.page-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-/* ─── CARDS ─── */
-.card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 16px; padding: 20px;
-}
-.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.stat-card {
-  background: var(--card2); border: 1px solid var(--border);
-  border-radius: 14px; padding: 18px; position: relative; overflow: hidden;
-}
-.stat-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-}
-.stat-card.green::before { background: var(--green); }
-.stat-card.red::before { background: var(--red); }
-.stat-card.orange::before { background: var(--orange); }
-.stat-card.blue::before { background: var(--accent); }
-.stat-num { font-size: 36px; font-weight: 700; line-height: 1; }
-.stat-label { font-size: 11px; color: var(--muted); margin-top: 6px; font-weight: 500; letter-spacing: 0.5px; }
-.stat-pct { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
-/* ─── TABLE ─── */
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-thead th {
-  text-align: left; padding: 10px 14px;
-  font-size: 10px; font-weight: 600; color: var(--muted);
-  letter-spacing: 0.8px; text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
-}
-tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
-tbody tr:hover { background: rgba(255,255,255,0.025); }
-tbody td { padding: 11px 14px; vertical-align: middle; }
-.badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
-}
-.badge.present { background: rgba(16,185,129,0.15); color: var(--green); }
-.badge.late { background: rgba(245,158,11,0.15); color: var(--orange); }
-.badge.absent { background: rgba(239,68,68,0.15); color: var(--red); }
-.badge.checkedout { background: rgba(124,58,237,0.15); color: #a78bfa; }
-
-/* ─── SCAN PAGE ─── */
-.scan-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-.scan-card { background: var(--card2); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
-.scan-center { text-align: center; }
-.scan-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-.scan-desc { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
-
-.qr-box {
-  width: 200px; height: 200px; margin: 0 auto 16px;
-  background: white; border-radius: 12px; padding: 8px;
-  display: flex; align-items: center; justify-content: center;
-}
-.qr-url { font-size: 10px; color: var(--muted); word-break: break-all; margin-bottom: 16px; }
-
-.btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 11px 20px; border-radius: 10px; font-size: 14px;
-  font-weight: 600; cursor: pointer; border: none; transition: all 0.2s;
-  font-family: inherit;
-}
-.btn:active { transform: scale(0.97); }
-.btn-primary { background: var(--accent); color: #000; }
-.btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
-.btn-danger { background: var(--red); color: white; }
-.btn-success { background: var(--green); color: white; }
-.btn-warn { background: var(--orange); color: #000; }
-.btn-full { width: 100%; justify-content: center; }
-.btn-sm { padding: 7px 14px; font-size: 12px; }
-
-/* ─── MANUAL SCAN FORM ─── */
-.form-group { margin-bottom: 14px; }
-.form-label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; display: block; margin-bottom: 6px; }
-.form-input {
-  width: 100%; padding: 11px 14px; background: var(--bg);
-  border: 1px solid var(--border); border-radius: 10px; color: var(--text);
-  font-size: 14px; font-family: inherit; outline: none; transition: border 0.2s;
-}
-.form-input:focus { border-color: var(--accent); }
-select.form-input { cursor: pointer; }
-.radio-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.radio-opt {
-  padding: 10px; border: 1.5px solid var(--border); border-radius: 10px;
-  cursor: pointer; text-align: center; font-size: 13px; font-weight: 500;
-  transition: all 0.2s; color: var(--muted);
-}
-.radio-opt:hover { border-color: var(--accent); color: var(--accent); }
-.radio-opt.sel-in { border-color: var(--green); background: rgba(16,185,129,0.1); color: var(--green); }
-.radio-opt.sel-out { border-color: #a78bfa; background: rgba(124,58,237,0.1); color: #a78bfa; }
-
-/* ─── SETTINGS ─── */
-.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.schedule-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 0; border-bottom: 1px solid var(--border);
-}
-.schedule-row:last-child { border-bottom: none; }
-.schedule-name { font-size: 14px; font-weight: 500; }
-.schedule-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.time-input-group { display: flex; align-items: center; gap: 6px; }
-.time-input {
-  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-  color: var(--text); padding: 7px 10px; font-size: 13px;
-  width: 80px; text-align: center; font-family: inherit; outline: none;
-}
-.time-input:focus { border-color: var(--accent); }
-
-/* ─── STAFF LIST ─── */
-.staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 16px; }
-.staff-chip {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--card2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 12px; font-size: 13px;
-}
-.staff-avatar {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent2), var(--accent));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; flex-shrink: 0;
-}
-.staff-name-text { font-size: 12px; line-height: 1.3; }
-.del-btn { margin-left: auto; background: none; border: none; color: var(--red); cursor: pointer; font-size: 15px; opacity: 0.6; transition: opacity 0.2s; }
-.del-btn:hover { opacity: 1; }
-
-/* ─── LOG FEED ─── */
-.log-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 0; border-bottom: 1px solid var(--border);
-}
-.log-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
-.log-dot.in { background: var(--green); }
-.log-dot.out { background: #a78bfa; }
-.log-dot.auto { background: var(--accent); }
-.log-text { font-size: 13px; }
-.log-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
-
-/* ─── STATUS MSG ─── */
-.status-msg {
-  padding: 12px 16px; border-radius: 10px; font-size: 13px;
-  margin-top: 14px; display: none;
-}
-.status-msg.show { display: block; }
-.status-msg.ok { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: var(--green); }
-.status-msg.err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--red); }
-.status-msg.warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: var(--orange); }
-
-/* ─── PROGRESS BAR ─── */
-.progress-wrap { background: var(--bg); border-radius: 20px; height: 6px; margin-top: 8px; overflow: hidden; }
-.progress-bar { height: 100%; border-radius: 20px; background: linear-gradient(90deg, var(--green), var(--accent)); transition: width 0.5s ease; }
-
-/* ─── RESPONSIVE ─── */
-@media (max-width: 768px) {
-  .app { grid-template-columns: 1fr; }
-  .sidebar { height: auto; position: relative; flex-direction: row; flex-wrap: wrap; padding: 16px; }
-  .logo { padding-bottom: 12px; margin-bottom: 8px; width: 100%; }
-  .clock-box { margin-top: 8px; width: 100%; }
-  .scan-layout, .settings-grid { grid-template-columns: 1fr; }
-  .nav-label { display: none; }
-}
-
-.tg-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: rgba(0,136,204,0.15); border: 1px solid rgba(0,136,204,0.3);
-  color: #29b6f6; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
-}
-
-.schedule-status {
-  display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
-  padding: 3px 8px; border-radius: 20px; font-weight: 600;
-}
-.sch-active { background: rgba(16,185,129,0.15); color: var(--green); }
-.sch-inactive { background: rgba(100,116,139,0.15); color: var(--muted); }
-
-.divider { height: 1px; background: var(--border); margin: 20px 0; }
-</style>
+        /* Form for Mobile Scan */
+        .scan-form { max-width: 400px; margin: 0 auto; background: var(--card2); padding: 30px; border-radius: 20px; }
+        select, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; font-size: 16px; }
+        select { background: var(--bg); color: white; border: 1px solid var(--border); }
+        .btn-submit { background: var(--accent); border: none; font-weight: bold; cursor: pointer; }
+        
+        #clock { font-size: 24px; color: var(--accent); font-weight: bold; text-align: right; margin-bottom: 20px; }
+    </style>
 </head>
 <body>
-<div class="app">
 
-<!-- SIDEBAR -->
-<aside class="sidebar">
-  <div class="logo">
-    <div class="logo-icon">🏫</div>
-    <div>
-      <div class="logo-text">MIKIDS</div>
-      <div class="logo-sub">Attendance System</div>
-    </div>
-  </div>
+<div class="container">
+    <div id="clock">00:00:00</div>
 
-  <div class="nav-label">Menu</div>
-  <button class="nav-btn active" onclick="showTab('dashboard')"><span class="icon">📊</span> Dashboard</button>
-  <button class="nav-btn" onclick="showTab('scan')"><span class="icon">📷</span> QR Scan / ស្គេន</button>
-  <button class="nav-btn" onclick="showTab('staff')"><span class="icon">👥</span> បញ្ជីបុគ្គលិក</button>
-  <button class="nav-btn" onclick="showTab('settings')"><span class="icon">⚙️</span> ការកំណត់</button>
-  <button class="nav-btn" onclick="showTab('log')"><span class="icon">📝</span> កំណត់ហេតុ</button>
-
-  <div class="nav-label" style="margin-top:8px"> សកម្មភាព</div>
-  <button class="nav-btn" onclick="manualSendSummary()"><span class="icon">📤</span> ផ្ញើ Summary</button>
-  <button class="nav-btn" onclick="resetToday()" style="color:var(--red)"><span class="icon">🔄</span> Reset ថ្ងៃនេះ</button>
-
-  <div class="clock-box">
-    <div class="clock-time" id="clockTime">--:--:--</div>
-    <div class="clock-date" id="clockDate"></div>
-    <div id="clockStatus" style="font-size:11px;margin-top:6px;color:var(--muted)"></div>
-  </div>
-</aside>
-
-<!-- MAIN -->
-<main class="main">
-
-  <!-- DASHBOARD -->
-  <div id="tab-dashboard" class="tab-section active">
-    <div class="page-header">
-      <div>
-        <div class="page-title">📊 Dashboard</div>
-        <div class="page-sub" id="dashDate"></div>
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="refreshDashboard()">🔄 Refresh</button>
-    </div>
-
-    <div class="card-grid">
-      <div class="stat-card blue">
-        <div class="stat-num" id="statTotal">0</div>
-        <div class="stat-label">សរុបបុគ្គលិក</div>
-        <div class="progress-wrap" style="margin-top:10px"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
-      </div>
-      <div class="stat-card green">
-        <div class="stat-num" id="statPresent">0</div>
-        <div class="stat-label">✅ វត្តមាន</div>
-        <div class="stat-pct" id="statPresentPct"></div>
-      </div>
-      <div class="stat-card red">
-        <div class="stat-num" id="statAbsent">0</div>
-        <div class="stat-label">❌ អវត្តមាន</div>
-      </div>
-      <div class="stat-card orange">
-        <div class="stat-num" id="statLate">0</div>
-        <div class="stat-label">⚠️ មកយឺត</div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-bottom:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-size:15px;font-weight:600">📋 ស្ថានភាពបុគ្គលិក</div>
-        <div style="display:flex;gap:8px">
-          <span class="badge present">✅ វត្តមាន</span>
-          <span class="badge late">⚠️ យឺត</span>
-          <span class="badge absent">❌ អវត្តមាន</span>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>ឈ្មោះ</th>
-              <th>ស្ថានភាព</th>
-              <th>ម៉ោងមក</th>
-              <th>ម៉ោងចេញ</th>
-              <th>ពន្យារ</th>
-            </tr>
-          </thead>
-          <tbody id="staffStatusTable"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <div style="font-size:15px;font-weight:600;margin-bottom:16px">⏰ ការកំណត់ម៉ោងថ្ងៃនេះ</div>
-      <div id="todaySchedule" style="font-size:13px;color:var(--muted);line-height:2"></div>
-    </div>
-  </div>
-
-  <!-- SCAN TAB -->
-  <div id="tab-scan" class="tab-section">
-    <div class="page-header">
-      <div>
-        <div class="page-title">📷 QR Code & ស្គេន</div>
-        <div class="page-sub">Staff scan QR code ដើម្បីបញ្ជាក់វត្តមាន</div>
-      </div>
-    </div>
-
-    <div class="scan-layout">
-      <!-- QR CODE -->
-      <div class="scan-card scan-center">
-        <div class="scan-title">🔲 QR Code សម្រាប់ Check-In</div>
-        <div class="scan-desc">Staff scan QR code នេះ ឬចុចលើ link</div>
-        <div class="qr-box" id="qrBox"></div>
-        <div class="qr-url" id="qrUrl"></div>
-        <button class="btn btn-primary btn-full" onclick="generateQR()">🔄 បង្កើត QR ថ្មី</button>
-        <div style="margin-top:12px">
-          <button class="btn btn-secondary btn-sm" onclick="copyQrLink()">📋 Copy Link</button>
-        </div>
-      </div>
-
-      <!-- MANUAL SCAN -->
-      <div class="scan-card">
-        <div class="scan-title">✍️ ស្គេនដោយដៃ</div>
-        <div class="scan-desc">Admin ស្គេនជំនួសសម្រាប់បុគ្គលិក</div>
-        
-        <div class="form-group">
-          <label class="form-label">ជ្រើសបុគ្គលិក</label>
-          <select class="form-input" id="manualStaff">
-            <option value="">-- ជ្រើសឈ្មោះ --</option>
-          </select>
+    <div id="admin-view">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+            <button class="tab-btn" onclick="switchTab('qr-gen')">🔲 QR Code</button>
+            <button class="tab-btn" onclick="resetToday()" style="color:var(--red)">🔄 Reset</button>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">ប្រភេទ</label>
-          <div class="radio-group">
-            <div class="radio-opt sel-in" id="optIn" onclick="selectType('in')">✅ Check-In</div>
-            <div class="radio-opt" id="optOut" onclick="selectType('out')">🔵 Check-Out</div>
-          </div>
+        <div id="dashboard" class="section active">
+            <div class="stat-grid">
+                <div class="stat-card"><div class="stat-num" id="countPresent">0</div><div class="stat-label">វត្តមាន</div></div>
+                <div class="stat-card"><div class="stat-num" id="countLate">0</div><div class="stat-label">យឺត</div></div>
+                <div class="stat-card"><div class="stat-num" id="countAbsent">0</div><div class="stat-label">អវត្តមាន</div></div>
+            </div>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ឈ្មោះបុគ្គលិក</th>
+                            <th>តួនាទី</th>
+                            <th>ស្ថានភាព</th>
+                            <th>ម៉ោងចូល</th>
+                            <th>ម៉ោងចេញ</th>
+                            <th>យឺត</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-list"></tbody>
+                </table>
+            </div>
         </div>
 
-        <button class="btn btn-success btn-full" onclick="manualScan()">📌 ស្គេន</button>
-        <div class="status-msg" id="manualStatus"></div>
-      </div>
+        <div id="qr-gen" class="section">
+            <div class="card" id="qr-container">
+                <h2>Scan QR សម្រាប់វត្តមាន</h2>
+                <p style="color:var(--muted)">ឱ្យបុគ្គលិកស្កេនរូបនេះដើម្បី Check-In/Out</p>
+                <div id="qrcode"></div>
+                <p id="qr-link" style="font-size:12px; color:var(--accent); cursor:pointer" onclick="openScanPage()">បើកទំព័រស្កេន (Mobile View)</p>
+            </div>
+        </div>
     </div>
 
-    <!-- SCAN LINK PAGE INFO -->
-    <div class="card" style="margin-top:20px">
-      <div style="font-size:14px;font-weight:600;margin-bottom:12px">📱 របៀប Staff ប្រើ QR Code</div>
-      <div style="font-size:13px;color:var(--muted);line-height:2">
-        1️⃣ Staff ស្គេន QR Code ដោយ Phone Camera<br>
-        2️⃣ Browser បើក Link ។ Staff ជ្រើសឈ្មោះ + ចុច Check-In<br>
-        3️⃣ ប្រព័ន្ធ Auto ចុះម៉ោងហើយផ្ញើទៅ Telegram<br>
-        4️⃣ Summary ត្រូវបានផ្ញើតាម Schedule ដែលបានកំណត់
-      </div>
-    </div>
-  </div>
+    <div id="scan-view" class="section">
+        <div class="scan-form">
+            <h2 style="text-align:center; margin-bottom:10px">MIKIDS Check-In</h2>
+            <p style="text-align:center; color:var(--muted); margin-bottom:20px" id="mobile-date"></p>
+            
+            <label>ជ្រើសរើសឈ្មោះរបស់អ្នក:</label>
+            <select id="staff-select"></select>
 
-  <!-- STAFF TAB -->
-  <div id="tab-staff" class="tab-section">
-    <div class="page-header">
-      <div>
-        <div class="page-title">👥 បញ្ជីបុគ្គលិក</div>
-        <div class="page-sub" id="staffCountLabel"></div>
-      </div>
+            <div style="display:flex; gap:10px; margin-top:20px">
+                <button class="btn-submit" onclick="submitAttendance('in')" style="background:var(--green); color:white">✅ Check-In</button>
+                <button class="btn-submit" onclick="submitAttendance('out')" style="background:var(--accent2); color:white; background-color: #7c3aed;">🔵 Check-Out</button>
+            </div>
+            <p id="status-msg" style="margin-top:15px; text-align:center"></p>
+            <button class="tab-btn" onclick="switchTab('dashboard')" style="margin-top:20px; width:100%">ត្រលប់ទៅ Dashboard</button>
+        </div>
     </div>
-    <div class="card" style="margin-bottom:20px">
-      <div style="font-size:14px;font-weight:600;margin-bottom:12px">➕ បន្ថែមបុគ្គលិក</div>
-      <div style="display:flex;gap:10px">
-        <input class="form-input" id="newStaffName" placeholder="ឈ្មោះបុគ្គលិក" style="flex:1">
-        <input class="form-input" id="newStaffRole" placeholder="តួនាទី" style="flex:1">
-        <button class="btn btn-success" onclick="addStaff()">➕ Add</button>
-      </div>
-    </div>
-    <div class="staff-grid" id="staffList"></div>
-  </div>
-
-  <!-- SETTINGS TAB -->
-  <div id="tab-settings" class="tab-section">
-    <div class="page-header">
-      <div>
-        <div class="page-title">⚙️ ការកំណត់</div>
-        <div class="page-sub">ការកំណត់ Telegram + ម៉ោង</div>
-      </div>
-      <button class="btn btn-success btn-sm" onclick="saveSettings()">💾 Save</button>
-    </div>
-
-    <div class="settings-grid">
-      <!-- TELEGRAM -->
-      <div class="card">
-        <div style="font-size:15px;font-weight:600;margin-bottom:16px">
-          <span class="tg-badge">📬 Telegram</span>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Bot Token</label>
-          <input class="form-input" id="settingToken" placeholder="123456:ABC...">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Chat ID</label>
-          <input class="form-input" id="settingChatId" placeholder="-1001234567890">
-        </div>
-        <button class="btn btn-secondary btn-sm" onclick="testTelegram()">🔔  សាកល្បងផ្ញើ</button>
-        <div class="status-msg" id="tgStatus"></div>
-      </div>
-
-      <!-- SCHOOL INFO -->
-      <div class="card">
-        <div style="font-size:15px;font-weight:600;margin-bottom:16px">🏫 ព័ត៌មានសាលា</div>
-        <div class="form-group">
-          <label class="form-label">ឈ្មោះសាលា</label>
-          <input class="form-input" id="settingSchool" value="MIKIDS School">
-        </div>
-        <div class="form-group">
-          <label class="form-label">URL សម្រាប់ QR</label>
-          <input class="form-input" id="settingUrl" placeholder="https://your-site.com">
-        </div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-    <div style="font-size:15px;font-weight:600;margin-bottom:16px">⏰ ម៉ោងកំណត់ (Check-In)</div>
-    <div class="card">
-      <div class="schedule-row">
-        <div><div class="schedule-name">🟢 ម៉ោងចូលការ (ច័ន្ទ–សុក្រ)</div><div class="schedule-desc">ស្គេន AM ដំបូង</div></div>
-        <input type="time" class="time-input" id="sLateWD" value="07:05">
-      </div>
-      <div class="schedule-row">
-        <div><div class="schedule-name">🟡 ម៉ោងចូលការ (សៅរ៍)</div><div class="schedule-desc">ស្គេន AM សៅរ៍</div></div>
-        <input type="time" class="time-input" id="sLateSat" value="08:30">
-      </div>
-      <div class="schedule-row">
-        <div><div class="schedule-name">🌙 ស្គេន PM (ច័ន្ទ–សៅរ៍)</div><div class="schedule-desc">ស្គេនដងទី2</div></div>
-        <input type="time" class="time-input" id="sLatePM" value="13:01">
-      </div>
-    </div>
-
-    <div style="font-size:15px;font-weight:600;margin:20px 0 16px">📊 Auto Summary ទៅ Telegram</div>
-    <div class="card">
-      <div class="schedule-row">
-        <div>
-          <div class="schedule-name">🌅 Summary ព្រឹក (ច័ន្ទ–សុក្រ)</div>
-          <div class="schedule-desc">ផ្ញើ Summary AM ដោយស្វ័យប្រវត្តិ</div>
-        </div>
-        <div class="time-input-group">
-          <input type="time" class="time-input" id="sSumAM" value="08:50">
-          <span class="schedule-status sch-active">ON</span>
-        </div>
-      </div>
-      <div class="schedule-row">
-        <div>
-          <div class="schedule-name">🌆 Summary រសៀល (ច័ន្ទ–សុក្រ)</div>
-          <div class="schedule-desc">ផ្ញើ Summary PM ដោយស្វ័យប្រវត្តិ</div>
-        </div>
-        <div class="time-input-group">
-          <input type="time" class="time-input" id="sSumPM" value="14:30">
-          <span class="schedule-status sch-active">ON</span>
-        </div>
-      </div>
-      <div class="schedule-row">
-        <div>
-          <div class="schedule-name">🌅 Summary ព្រឹក (សៅរ៍)</div>
-          <div class="schedule-desc">ផ្ញើ Summary AM សៅរ៍</div>
-        </div>
-        <div class="time-input-group">
-          <input type="time" class="time-input" id="sSumSat" value="09:30">
-          <span class="schedule-status sch-active">ON</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- LOG TAB -->
-  <div id="tab-log" class="tab-section">
-    <div class="page-header">
-      <div>
-        <div class="page-title">📝 កំណត់ហេតុ</div>
-        <div class="page-sub">ប្រវត្តិ Check-In / Check-Out ថ្ងៃនេះ</div>
-      </div>
-      <button class="btn btn-danger btn-sm" onclick="clearLog()">🗑️ Clear Log</button>
-    </div>
-    <div class="card">
-      <div id="logFeed" style="max-height:500px;overflow-y:auto"></div>
-    </div>
-  </div>
-
-</main>
-</div>
-
-<!-- ─── SCAN PAGE (Mobile) — served separately via URL hash ─── -->
-<div id="scanModal" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;overflow-y:auto;padding:20px">
-  <div style="max-width:400px;margin:0 auto">
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:30px;margin-bottom:8px">🏫</div>
-      <div style="font-size:20px;font-weight:700" id="scanSchoolName">MIKIDS School</div>
-      <div style="font-size:12px;color:var(--muted)" id="scanCurrentTime"></div>
-    </div>
-    <div class="card" style="background:var(--card2)">
-      <div class="form-group">
-        <label class="form-label">ជ្រើសឈ្មោះ Staff</label>
-        <select class="form-input" id="scanNameSel">
-          <option value="">-- ជ្រើសឈ្មោះ --</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">ប្រភេទ</label>
-        <div class="radio-group">
-          <div class="radio-opt sel-in" id="scanOptIn" onclick="scanSelectType('in')">✅ Check-In</div>
-          <div class="radio-opt" id="scanOptOut" onclick="scanSelectType('out')">🔵 Check-Out</div>
-        </div>
-      </div>
-      <button class="btn btn-success btn-full" style="margin-top:8px" onclick="submitScan()">📌Scan</button>
-      <div class="status-msg" id="scanStatus"></div>
-    </div>
-    <button class="btn btn-secondary btn-full" style="margin-top:12px" onclick="closeScanModal()">←Back</button>
-  </div>
 </div>
 
 <script>
-// ─── STATE ───────────────────────────────────────────────────
-const DEFAULT_STAFF = [
-  { name: "Chanthoeurn chhoeurn", role: "IT" },
-  { name: "Ashley villela", role: "English Teacher" },
-  { name: "វិន សេរីភាព", role: "Assistant Teacher" },
-  { name: "CHOT HORN", role: "Teacher" },
-  { name: "មុឹង ស្រីនីត", role: "Teacher" },
-  { name: "អឿន កាណាល់", role: "Teacher" },
-  { name: "ប៉ូ សូឌិន", role: "Teacher + រដ្ឋបាល" },
-  { name: "Leang Sopheavy", role: "Computer Teacher" },
-  { name: "Chamnan Veasna", role: "English Teacher" },
-  { name: "Born Chhorda", role: "Teacher" },
-  { name: "SOK SREYPICE", role: "Teacher" },
-  { name: "Eng sreynin", role: "Receptionist" },
-  { name: "កុសល សៀកម៉េង", role: "Assistant Teacher" },
-  { name: "vat mouy saing", role: "Chinese Teacher" },
-  { name: "ឈឹមវ៉ាន លីហង្ស", role: "Teacher" },
-  { name: "Dorn Sreyneth", role: "English Teacher" }
-];
-
-let state = {
-  staffList: [],
-  todayRecords: {},  // { name: { checkIn, checkOut, lateMin, role } }
-  log: [],
-  settings: {
+// --- ការកំណត់ (Configuration) ---
+const CONFIG = {
     token: '8242266919:AAGE6uMJ_-UvM-3KBZkJVFhJyTLvcTVW5tQ',
     chatId: '-1003584563383',
-    school: 'MIKIDS School',
-    siteUrl: window.location.href,
-    lateWD: '07:05',
-    lateSat: '08:30',
-    latePM: '13:01',
-    sumAM: '08:50',
-    sumPM: '14:30',
-    sumSat: '09:30'
-  },
-  autoSentToday: { am: false, pm: false, sat: false }
+    lateTime: '07:05',
+    schoolName: 'MIKIDS​​ INTERNATIONAL SCHOOL'
 };
 
-let scanType = 'in';
-let manualScanType = 'in';
-let qrGenerated = false;
+const STAFF_DATA = [
+    { name: "Chanthoeurn chhoeurn", role: "IT " },
+    { name: "Ashley villela", role: "English Teacher" },
+    { name: "វិន សេរីភាព", role: "Assistant Teacher" },
+    { name: "CHOT HORN", role: "Teacher" },
+    { name: "មុឹង ស្រីនីត", role: "Teacher" },
+    { name: "អឿន កាណាល់", role: "Teacher" },
+    { name: "ប៉ូ សូឌិន", role: "Admin / Teacher" },
+    { name: "Leang Sopheavy", role: "Computer Teacher" },
+    { name: "Chamnan Veasna", role: "English Teacher" },
+    { name: "Born Chhorda", role: "Teacher" },
+    { name: "SOK SREYPICE", role: "Teacher" },
+    { name: "Eng sreynin", role: "Receptionist" },
+    { name: "កុសល សៀកម៉េង", role: "Assistant Teacher" },
+    { name: "vat mouy saing", role: "Chinese Teacher" },
+    { name: "ឈឹមវ៉ាន លីហង្ស", role: "Teacher" },
+    { name: "Dorn Sreyneth", role: "English Teacher" }
+];
 
-// ─── INIT ────────────────────────────────────────────────────
-function init() {
-  loadAll();
-  bindSettings();
-  renderStaffList();
-  refreshDashboard();
-  populateStaffDropdowns();
-  generateQR();
-  startClock();
-  startAutoTimer();
-  renderLog();
-  
-  const today = new Date().toDateString();
-  if (localStorage.getItem('autoSentDate') !== today) {
-    state.autoSentToday = { am: false, pm: false, sat: false };
-    localStorage.setItem('autoSentDate', today);
-  } else {
-    const saved = localStorage.getItem('autoSentToday');
-    if (saved) state.autoSentToday = JSON.parse(saved);
-  }
+let attendance = JSON.parse(localStorage.getItem('mikids_records')) || {};
 
-  if (window.location.hash === '#scan') showScanModal();
-  
-  document.getElementById('dashDate').textContent = new Date().toLocaleDateString('km-KH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  renderTodaySchedule();
-}
-
-// ─── PERSIST ─────────────────────────────────────────────────
-function saveAll() {
-  localStorage.setItem('mk_staff', JSON.stringify(state.staffList));
-  localStorage.setItem('mk_records_' + todayKey(), JSON.stringify(state.todayRecords));
-  localStorage.setItem('mk_log', JSON.stringify(state.log.slice(-200)));
-  localStorage.setItem('mk_settings', JSON.stringify(state.settings));
-}
-function loadAll() {
-  const s = localStorage.getItem('mk_staff');
-  if (s) {
-    const parsed = JSON.parse(s);
-    state.staffList = parsed.map(item => typeof item === 'string' ? { name: item, role: 'Teacher' } : item);
-  } else {
-    state.staffList = DEFAULT_STAFF;
-  }
-  const r = localStorage.getItem('mk_records_' + todayKey());
-  state.todayRecords = r ? JSON.parse(r) : {};
-  const l = localStorage.getItem('mk_log');
-  state.log = l ? JSON.parse(l) : [];
-  const cfg = localStorage.getItem('mk_settings');
-  if (cfg) state.settings = { ...state.settings, ...JSON.parse(cfg) };
-}
-function todayKey() { return new Date().toISOString().slice(0, 10); }
-
-// ─── CLOCK ───────────────────────────────────────────────────
-function startClock() {
-  function tick() {
+// --- មុខងារនាឡិកា ---
+function updateClock() {
     const now = new Date();
-    document.getElementById('clockTime').textContent = now.toLocaleTimeString('en-US', { hour12: false });
-    document.getElementById('clockDate').textContent = now.toLocaleDateString('km-KH', { weekday:'short', month:'short', day:'numeric' });
-    updateClockStatus(now);
-    if (document.getElementById('scanCurrentTime'))
-      document.getElementById('scanCurrentTime').textContent = now.toLocaleTimeString('en-US', { hour12: true });
-  }
-  tick();
-  setInterval(tick, 1000);
+    document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+    const dateStr = now.toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if(document.getElementById('mobile-date')) document.getElementById('mobile-date').textContent = dateStr;
 }
-function updateClockStatus(now) {
-  const h = now.getHours(), m = now.getMinutes();
-  const s = getSchedule();
-  const [lh, lm] = s.late.split(':').map(Number);
-  let status = '';
-  if (h < lh || (h === lh && m < lm)) {
-    const rem = (lh * 60 + lm) - (h * 60 + m);
-    status = `⏳ Check-In ក្នុង ${rem} នាទី`;
-  } else {
-    status = `✅ ម៉ោងធ្វើការ`;
-  }
-  document.getElementById('clockStatus').textContent = status;
+setInterval(updateClock, 1000);
+
+// --- មុខងារប្តូរ Tab ---
+function switchTab(tabId) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    renderDashboard();
 }
 
-// ─── SCHEDULE ────────────────────────────────────────────────
-function getSchedule() {
-  const d = new Date().getDay();
-  const s = state.settings;
-  if (d === 6) return { late: s.lateSat, sumAM: s.sumSat, sumPM: null, label: 'សៅរ៍' };
-  if (d === 0) return { late: s.lateWD, sumAM: null, sumPM: null, label: 'អាទិត្យ' };
-  return { late: s.lateWD, sumAM: s.sumAM, sumPM: s.sumPM, label: 'ធម្មតា' };
-}
-function getLateMinutes(checkInTime, scanNum) {
-  const s = state.settings;
-  const thresholdStr = scanNum === 2 ? s.latePM : getSchedule().late;
-  const [th, tm] = thresholdStr.split(':').map(Number);
-  const [ih, im] = checkInTime.split(':').map(Number);
-  const diff = (ih * 60 + im) - (th * 60 + tm);
-  return Math.max(0, diff);
-}
-function fmtLate(mins) {
-  if (!mins) return 'ទាន់ម៉ោង ✅';
-  const h = Math.floor(mins / 60), m = mins % 60;
-  return h ? (m ? `${h}ម៉ោង ${m}នាទី` : `${h}ម៉ោង`) : `${m}នាទី`;
-}
-function renderTodaySchedule() {
-  const s = getSchedule(), ss = state.settings;
-  const el = document.getElementById('todaySchedule');
-  el.innerHTML = `
-    📅 ថ្ងៃ: <b>${s.label}</b><br>
-    🟢 ចូលការ (AM): <b>${s.late}</b> (ត្រូវមកមុន)<br>
-    🌙 ស្គេន PM: <b>${ss.latePM}</b><br>
-    ${s.sumAM ? `📊 Auto Summary ព្រឹក: <b>${s.sumAM}</b><br>` : ''}
-    ${s.sumPM ? `📊 Auto Summary រសៀល: <b>${s.sumPM}</b>` : ''}
-  `;
+function openScanPage() {
+    switchTab('scan-view');
 }
 
-// ─── NAVIGATION ──────────────────────────────────────────────
-function showTab(name) {
-  document.querySelectorAll('.tab-section').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  event.currentTarget.classList.add('active');
-  if (name === 'dashboard') refreshDashboard();
-  if (name === 'log') renderLog();
-  if (name === 'staff') renderStaffList();
-  if (name === 'settings') bindSettings();
-}
-
-// ─── DASHBOARD ───────────────────────────────────────────────
-function refreshDashboard() {
-  const total = state.staffList.length;
-  const records = state.todayRecords;
-  const presentNames = Object.keys(records).filter(n => records[n].checkIn);
-  const lateNames = presentNames.filter(n => (records[n].lateMin || 0) > 0);
-  const absentNames = state.staffList.map(s => s.name).filter(n => !presentNames.includes(n));
-  const pct = total ? ((presentNames.length / total) * 100).toFixed(1) : 0;
-
-  document.getElementById('statTotal').textContent = total;
-  document.getElementById('statPresent').textContent = presentNames.length;
-  document.getElementById('statPresentPct').textContent = pct + '%';
-  document.getElementById('statAbsent').textContent = absentNames.length;
-  document.getElementById('statLate').textContent = lateNames.length;
-  document.getElementById('progressBar').style.width = pct + '%';
-
-  const tbody = document.getElementById('staffStatusTable');
-  tbody.innerHTML = state.staffList.map((staff, i) => {
-    const rec = records[staff.name];
-    let badge, ci = '-', co = '-', late = '-';
-    if (rec && rec.checkIn) {
-      const l = rec.lateMin || 0;
-      if (l > 0) {
-        badge = `<span class="badge late">⚠️ យឺត</span>`;
-        late = `<span style="color:var(--orange)">${fmtLate(l)}</span>`;
-      } else {
-        badge = `<span class="badge present">✅ ទាន់</span>`;
-        late = `<span style="color:var(--green)">–</span>`;
-      }
-      ci = rec.checkIn;
-      co = rec.checkOut || '<span style="color:var(--muted)">–</span>';
-    } else {
-      badge = `<span class="badge absent">❌ អវត្តមាន</span>`;
-    }
-    return `<tr>
-      <td style="color:var(--muted)">${i+1}</td>
-      <td><div style="font-weight:500">${staff.name}</div><div style="font-size:11px;color:var(--muted)">${staff.role||''}</div></td>
-      <td>${badge}</td>
-      <td style="font-variant-numeric:tabular-nums">${ci}</td>
-      <td style="font-variant-numeric:tabular-nums">${co}</td>
-      <td>${late}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ─── STAFF ───────────────────────────────────────────────────
-function renderStaffList() {
-  document.getElementById('staffCountLabel').textContent = `សរុប ${state.staffList.length} នាក់`;
-  const container = document.getElementById('staffList');
-  container.innerHTML = state.staffList.map((s, i) => `
-    <div class="staff-chip">
-      <div class="staff-avatar">${getInitials(s.name)}</div>
-      <div class="staff-name-text"><div>${s.name}</div><div style="color:var(--muted);font-size:10px">${s.role||''}</div></div>
-      <button class="del-btn" onclick="removeStaff(${i})">✕</button>
-    </div>
-  `).join('');
-  populateStaffDropdowns();
-}
-function getInitials(name) {
-  return name.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
-}
-function addStaff() {
-  const name = document.getElementById('newStaffName').value.trim();
-  const role = document.getElementById('newStaffRole').value.trim();
-  if (!name) return;
-  state.staffList.push({ name, role });
-  document.getElementById('newStaffName').value = '';
-  document.getElementById('newStaffRole').value = '';
-  saveAll();
-  renderStaffList();
-}
-function removeStaff(i) {
-  if (!confirm('លុបបុគ្គលិក: ' + state.staffList[i].name + '?')) return;
-  state.staffList.splice(i, 1);
-  saveAll();
-  renderStaffList();
-}
-function populateStaffDropdowns() {
-  const opts = `<option value="">-- ជ្រើស --</option>` + state.staffList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-  const els = ['manualStaff', 'scanNameSel'];
-  els.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = opts; });
-}
-
-// ─── SETTINGS ────────────────────────────────────────────────
-function bindSettings() {
-  const ss = state.settings;
-  document.getElementById('settingToken').value = ss.token;
-  document.getElementById('settingChatId').value = ss.chatId;
-  document.getElementById('settingSchool').value = ss.school;
-  document.getElementById('settingUrl').value = ss.siteUrl;
-  document.getElementById('sLateWD').value = ss.lateWD;
-  document.getElementById('sLateSat').value = ss.lateSat;
-  document.getElementById('sLatePM').value = ss.latePM;
-  document.getElementById('sSumAM').value = ss.sumAM;
-  document.getElementById('sSumPM').value = ss.sumPM;
-  document.getElementById('sSumSat').value = ss.sumSat;
-}
-function saveSettings() {
-  state.settings.token = document.getElementById('settingToken').value.trim();
-  state.settings.chatId = document.getElementById('settingChatId').value.trim();
-  state.settings.school = document.getElementById('settingSchool').value.trim();
-  state.settings.siteUrl = document.getElementById('settingUrl').value.trim();
-  state.settings.lateWD = document.getElementById('sLateWD').value;
-  state.settings.lateSat = document.getElementById('sLateSat').value;
-  state.settings.latePM = document.getElementById('sLatePM').value;
-  state.settings.sumAM = document.getElementById('sSumAM').value;
-  state.settings.sumPM = document.getElementById('sSumPM').value;
-  state.settings.sumSat = document.getElementById('sSumSat').value;
-  saveAll();
-  showStatus('tgStatus', 'ok', '✅ Save រួចរាល់!');
-  renderTodaySchedule();
-}
-
-// ─── TELEGRAM ────────────────────────────────────────────────
-async function sendTelegram(text) {
-  const { token, chatId } = state.settings;
-  if (!token || !chatId) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
-    });
-  } catch (e) { console.error(e); }
-}
-async function testTelegram() {
-  saveSettings();
-  await sendTelegram('✅ MIKIDS Attendance System — ការតភ្ជាប់ Telegram ដំណើរការ!');
-  showStatus('tgStatus', 'ok', '✅ ផ្ញើ Test ទៅ Telegram ជោគជ័យ!');
-}
-
-// ─── BUILD SUMMARY ───────────────────────────────────────────
-async function buildAndSendSummary(label) {
-  const records = state.todayRecords;
-  const allNames = state.staffList.map(s => s.name);
-  const presentNames = Object.keys(records).filter(n => records[n].checkIn);
-  const lateStaff = presentNames.filter(n => (records[n].lateMin || 0) > 0);
-  const onTime = presentNames.length - lateStaff.length;
-  const absent = allNames.filter(n => !presentNames.includes(n));
-  const total = state.staffList.length;
-  const pct = total ? ((presentNames.length / total) * 100).toFixed(1) : 0;
-
-  const now = new Date();
-  const date = now.toLocaleDateString('km-KH');
-  const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const sch = getSchedule();
-
-  let msg = `━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `${label} <b>ថ្ងៃ${sch.label}</b>\n`;
-  msg += `🏫 <b>${state.settings.school}</b>\n`;
-  msg += `📅 <b>${date}</b> | ⏰ <b>${time}</b>\n`;
-  msg += `━━━━━━━━━━━━━━━━━━━\n\n`;
-  msg += `👥 <b>សរុប:</b> ${total} នាក់\n`;
-  msg += `✅ <b>វត្តមាន:</b> ${presentNames.length} នាក់ (${pct}%)\n`;
-  msg += `❌ <b>អវត្តមាន:</b> ${absent.length} នាក់\n`;
-  msg += `⏰ <b>ទាន់ម៉ោង:</b> ${onTime} នាក់\n`;
-  msg += `⚠️ <b>មកយឺត:</b> ${lateStaff.length} នាក់\n\n`;
-
-  if (lateStaff.length > 0) {
-    msg += `━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `⚠️ <b>បុគ្គលិកមកយឺត:</b>\n\n`;
-    lateStaff.forEach((name, i) => {
-      const rec = records[name];
-      const staff = state.staffList.find(s => s.name === name);
-      const emoji = (rec.lateMin || 0) > 60 ? '🔴' : '🟠';
-      msg += `${emoji} <b>${i+1}. ${name}</b>\n`;
-      if (staff?.role) msg += `   💼 ${staff.role}\n`;
-      msg += `   ⏰ យឺត: <b>${fmtLate(rec.lateMin)}</b>\n`;
-      msg += `   🕐 មកដល់: ${rec.checkIn}\n\n`;
-    });
-  } else {
-    msg += `━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `🏆 <b>គ្មាននរណាមកយឺតទេ!</b>\n\n`;
-  }
-
-  if (absent.length > 0) {
-    msg += `━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `❌ <b>អវត្តមាន (${absent.length} នាក់):</b>\n\n`;
-    absent.forEach((name, i) => { msg += `${i+1}. ${name}\n`; });
-  } else {
-    msg += `━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `🎉 <b>បុគ្គលិកទាំងអស់វត្តមាន!</b>\n`;
-  }
-
-  await sendTelegram(msg);
-  addLog('auto', `ផ្ញើ ${label} ទៅ Telegram ✅`);
-}
-
-async function manualSendSummary() {
-  const h = new Date().getHours();
-  const label = h < 12 ? '🌅 Summary ព្រឹក' : '🌆 Summary រសៀល';
-  await buildAndSendSummary(label);
-  alert('✅ Summary ត្រូវបានផ្ញើទៅ Telegram!');
-}
-
-// ─── AUTO TIMER ──────────────────────────────────────────────
-function startAutoTimer() {
-  setInterval(async () => {
-    const now = new Date();
-    const d = now.getDay();
-    if (d === 0) return;
-    const h = now.getHours(), m = now.getMinutes();
-    const sch = getSchedule();
-    const s = state.settings;
-
-    function matchTime(timeStr) {
-      if (!timeStr) return false;
-      const [th, tm] = timeStr.split(':').map(Number);
-      return h === th && m === tm;
-    }
-
-    if (d === 6) {
-      if (matchTime(s.sumSat) && !state.autoSentToday.sat) {
-        state.autoSentToday.sat = true;
-        localStorage.setItem('autoSentToday', JSON.stringify(state.autoSentToday));
-        await buildAndSendSummary('🌅 Summary ព្រឹក');
-      }
-    } else {
-      if (matchTime(s.sumAM) && !state.autoSentToday.am) {
-        state.autoSentToday.am = true;
-        localStorage.setItem('autoSentToday', JSON.stringify(state.autoSentToday));
-        await buildAndSendSummary('🌅 Summary ព្រឹក');
-      }
-      if (matchTime(s.sumPM) && !state.autoSentToday.pm) {
-        state.autoSentToday.pm = true;
-        localStorage.setItem('autoSentToday', JSON.stringify(state.autoSentToday));
-        await buildAndSendSummary('🌆 Summary រសៀល');
-      }
-    }
-  }, 30000); // Check every 30 seconds
-}
-
-// ─── QR CODE ─────────────────────────────────────────────────
+// --- បង្កើត QR Code ---
 function generateQR() {
-  const url = (state.settings.siteUrl || window.location.href) + '#scan';
-  document.getElementById('qrUrl').textContent = url;
-  document.getElementById('scanSchoolName').textContent = state.settings.school;
-  const box = document.getElementById('qrBox');
-  box.innerHTML = '';
-  try {
-    new QRCode(box, { text: url, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
-  } catch(e) {
-    box.innerHTML = `<div style="font-size:12px;color:#999;text-align:center">QR Library Error<br>Copy link manually</div>`;
-  }
-}
-function copyQrLink() {
-  const url = (state.settings.siteUrl || window.location.href) + '#scan';
-  navigator.clipboard.writeText(url).then(() => alert('✅ Link Copied!')).catch(() => {});
-}
-
-// ─── SCAN MODAL ──────────────────────────────────────────────
-function showScanModal() {
-  document.getElementById('scanModal').style.display = 'block';
-  populateStaffDropdowns();
-}
-function closeScanModal() {
-  document.getElementById('scanModal').style.display = 'none';
-  window.location.hash = '';
-}
-window.addEventListener('hashchange', () => {
-  if (window.location.hash === '#scan') showScanModal();
-  else closeScanModal();
-});
-
-function scanSelectType(t) {
-  scanType = t;
-  document.getElementById('scanOptIn').className = 'radio-opt' + (t === 'in' ? ' sel-in' : '');
-  document.getElementById('scanOptOut').className = 'radio-opt' + (t === 'out' ? ' sel-out' : '');
-}
-
-async function submitScan() {
-  const name = document.getElementById('scanNameSel').value;
-  if (!name) { showStatus('scanStatus', 'err', '⚠️ សូមជ្រើសឈ្មោះ!'); return; }
-  await recordAttendance(name, scanType, 'scanStatus');
-}
-
-// ─── MANUAL SCAN ─────────────────────────────────────────────
-function selectType(t) {
-  manualScanType = t;
-  document.getElementById('optIn').className = 'radio-opt' + (t === 'in' ? ' sel-in' : '');
-  document.getElementById('optOut').className = 'radio-opt' + (t === 'out' ? ' sel-out' : '');
-}
-async function manualScan() {
-  const name = document.getElementById('manualStaff').value;
-  if (!name) { showStatus('manualStatus', 'err', '⚠️ សូមជ្រើសឈ្មោះ!'); return; }
-  await recordAttendance(name, manualScanType, 'manualStatus');
-}
-
-// ─── CORE: RECORD ATTENDANCE ──────────────────────────────────
-async function recordAttendance(name, type, statusId) {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  const time24 = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const staff = state.staffList.find(s => s.name === name);
-  const role = staff?.role || '';
-  const total = state.staffList.length;
-
-  if (!state.todayRecords[name]) state.todayRecords[name] = {};
-  const rec = state.todayRecords[name];
-
-  if (type === 'in') {
-    if (rec.checkIn2) { showStatus(statusId, 'warn', '⚠️ Check-In ២ដងរួចហើយ!'); return; }
-    const scanNum = rec.checkIn ? 2 : 1;
-    const lateMin = getLateMinutes(time24, scanNum);
-    if (scanNum === 1) {
-      rec.checkIn = timeStr;
-      rec.lateMin = lateMin;
-    } else {
-      rec.checkIn2 = timeStr;
-      rec.lateMin2 = lateMin;
-    }
-    addLog('in', `${name} Check-In${scanNum===2?' (ស្គេន2)':''} ${timeStr}${lateMin>0?' ⚠️ យឺត '+fmtLate(lateMin):' ✅'}`);
-    saveAll();
-
-    // Count how many have checked in (scan 1 only)
-    const checkedInCount = Object.values(state.todayRecords).filter(r => r.checkIn).length;
-    const remaining = total - checkedInCount;
-    const lateLabel = lateMin > 0 ? `\n⚠️ <b>យឺត: ${fmtLate(lateMin)}</b>` : '\n✅ <b>ទាន់ម៉ោង</b>';
-
-    // 🔔 Individual notification to Telegram
-    const lateTag = lateMin > 0 ? `⚠️ យឺត: ${fmtLate(lateMin)}` : `✅ ទាន់ម៉ោង`;
-    const msg = `🟢 <b>Check-In បានទទួល!</b>\n` +
-      `👤 <b>${name}</b>\n` +
-      `💼 ${role}\n` +
-      `⏰ ${timeStr}  |  ស្គេន${scanNum===2?'ទី2':'ដំបូង'}\n` +
-      lateTag;
-    await sendTelegram(msg);
-
-    showStatus(statusId, 'ok', `✅ Check-In ជោគជ័យ! (${checkedInCount}/${total})${lateMin>0?' ⚠️ យឺត '+fmtLate(lateMin):''}`);
-
-    // 🎉 All staff scanned → send complete summary immediately
-    if (scanNum === 1 && checkedInCount === total) {
-      await sendAllScannedSummary();
-    }
-
-  } else {
-    if (!rec.checkIn) { showStatus(statusId, 'warn', '⚠️ មិនទាន់ Check-In!'); return; }
-    if (rec.checkOut) { showStatus(statusId, 'warn', '⚠️ Check-Out រួចហើយ!'); return; }
-    rec.checkOut = timeStr;
-    addLog('out', `${name} Check-Out ${timeStr}`);
-    saveAll();
-
-    const checkedOutCount = Object.values(state.todayRecords).filter(r => r.checkOut).length;
-    const msg = `🔵 <b>Check-Out បានទទួល!</b>\n` +
-      `━━━━━━━━━━━━━━━━━━━\n` +
-      `👤 <b>${name}</b>\n💼 ${role}\n` +
-      `⏰ <code>${timeStr}</code>\n\n` +
-      `📊 Check-Out: <b>${checkedOutCount}/${total}</b> នាក់`;
-    await sendTelegram(msg);
-    showStatus(statusId, 'ok', `✅ Check-Out ជោគជ័យ! (${checkedOutCount}/${total})`);
-
-    // 🎉 All staff checked out
-    if (checkedOutCount === total) {
-      const doneMsg = `🎊 <b>បុគ្គលិកទាំងអស់ Check-Out រួចហើយ!</b>\n` +
-        `🏫 ${state.settings.school}\n` +
-        `⏰ ${timeStr}  |  📅 ${now.toLocaleDateString('km-KH')}`;
-      await sendTelegram(doneMsg);
-    }
-  }
-
-  refreshDashboard();
-}
-
-// ─── PROGRESS BAR TEXT (emoji style) ────────────────────────
-function buildProgressBar(current, total) {
-  const filled = Math.round((current / total) * 10);
-  return '🟩'.repeat(filled) + '⬜'.repeat(10 - filled);
-}
-
-// ─── ALL STAFF SCANNED → INSTANT SUMMARY ─────────────────────
-async function sendAllScannedSummary() {
-  const records = state.todayRecords;
-  const presentNames = Object.keys(records).filter(n => records[n].checkIn);
-  const lateStaff = presentNames.filter(n => (records[n].lateMin || 0) > 0);
-  const onTimeStaff = presentNames.filter(n => !(records[n].lateMin > 0));
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true });
-  const total = state.staffList.length;
-
-  let msg = `🎉 <b>បុគ្គលិកទាំងអស់ស្គេនរួចហើយ!</b>\n`;
-  msg += `🏫 ${state.settings.school}  |  ⏰ ${timeStr}\n`;
-  msg += `📊 សរុប: <b>${total}/${total} (100%)</b>\n`;
-  msg += `✅ ទាន់ម៉ោង: <b>${onTimeStaff.length} នាក់</b>  |  ⚠️ យឺត: <b>${lateStaff.length} នាក់</b>\n`;
-
-  if (lateStaff.length > 0) {
-    msg += `\n⚠️ <b>បុគ្គលិកមកយឺត:</b>\n`;
-    lateStaff.forEach((name, i) => {
-      const rec = records[name];
-      const s = state.staffList.find(x => x.name === name);
-      const emoji = (rec.lateMin||0) > 60 ? '🔴' : '🟠';
-      msg += `${emoji} ${i+1}. <b>${name}</b>`;
-      if (s?.role) msg += `  💼 ${s.role}`;
-      msg += `\n   ⏰ យឺត: <b>${fmtLate(rec.lateMin)}</b>  🕐 ${rec.checkIn}\n`;
+    const currentUrl = window.location.href.split('#')[0] + '#scan';
+    new QRCode(document.getElementById("qrcode"), {
+        text: currentUrl,
+        width: 200,
+        height: 200
     });
-  }
-
-  msg += `\n✅ <b>ទាន់ម៉ោង:</b>\n`;
-  onTimeStaff.forEach((name, i) => {
-    msg += `${i+1}. ${name}  🕐 ${records[name].checkIn}\n`;
-  });
-
-  await sendTelegram(msg);
-  addLog('auto', '🎉 All Staff Scanned — Summary ផ្ញើទៅ Telegram!');
 }
 
-// ─── LOG ─────────────────────────────────────────────────────
-function addLog(type, text) {
-  const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  state.log.unshift({ type, text, time: now });
-}
-function renderLog() {
-  const feed = document.getElementById('logFeed');
-  if (!state.log.length) { feed.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">គ្មានទិន្នន័យ</div>'; return; }
-  feed.innerHTML = state.log.slice(0, 100).map(l => `
-    <div class="log-item">
-      <div class="log-dot ${l.type}"></div>
-      <div><div class="log-text">${l.text}</div><div class="log-time">${l.time}</div></div>
-    </div>
-  `).join('');
-}
-function clearLog() {
-  if (!confirm('លុប Log ទាំងអស់?')) return;
-  state.log = [];
-  saveAll();
-  renderLog();
+// --- គណនាម៉ោងយឺត ---
+function formatLate(mins) {
+    if (mins <= 0) return "-";
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return h > 0 ? `${h} ម៉ោង ${m} នាទី` : `${m} នាទី`;
 }
 
-// ─── RESET ───────────────────────────────────────────────────
+// --- បង្ហាញតារាង Dashboard ---
+function renderDashboard() {
+    const list = document.getElementById('attendance-list');
+    list.innerHTML = '';
+    let p = 0, l = 0;
+
+    STAFF_DATA.forEach(staff => {
+        const record = attendance[staff.name] || { in: '-', out: '-', late: 0, status: 'absent' };
+        if (record.status !== 'absent') p++;
+        if (record.late > 0) l++;
+
+        let badge = `<span class="badge absent">អវត្តមាន</span>`;
+        if (record.status === 'present') {
+            badge = record.late > 0 ? `<span class="badge late">យឺត</span>` : `<span class="badge present">វត្តមាន</span>`;
+        }
+
+        list.innerHTML += `
+            <tr>
+                <td><strong>${staff.name}</strong></td>
+                <td style="font-size:12px; color:var(--muted)">${staff.role}</td>
+                <td>${badge}</td>
+                <td>${record.in}</td>
+                <td>${record.out}</td>
+                <td style="color:${record.late > 0 ? 'var(--red)' : 'inherit'}">${formatLate(record.late)}</td>
+            </tr>
+        `;
+    });
+
+    document.getElementById('countPresent').textContent = p;
+    document.getElementById('countLate').textContent = l;
+    document.getElementById('countAbsent').textContent = STAFF_DATA.length - p;
+
+    // បំពេញឈ្មោះក្នុង Select សម្រាប់ Mobile
+    const select = document.getElementById('staff-select');
+    if(select.options.length <= 1) {
+        select.innerHTML = '<option value="">-- ជ្រើសរើសឈ្មោះ --</option>';
+        STAFF_DATA.forEach(s => select.innerHTML += `<option value="${s.name}">${s.name}</option>`);
+    }
+}
+
+// --- ផ្ញើទៅ Telegram ---
+function sendToTelegram(msg) {
+    fetch(`https://api.telegram.org/bot${CONFIG.token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: CONFIG.chatId, text: msg, parse_mode: 'HTML' })
+    });
+}
+
+// --- ស្កេន Check-In/Out ---
+function submitAttendance(type) {
+    const name = document.getElementById('staff-select').value;
+    if (!name) return alert("សូមជ្រើសរើសឈ្មោះ!");
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('km-KH');
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const time24 = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const staff = STAFF_DATA.find(s => s.name === name);
+
+    if (type === 'in') {
+        if (attendance[name]) return alert("អ្នកបាន Check-In រួចហើយ!");
+        
+        const [targetH, targetM] = CONFIG.lateTime.split(':').map(Number);
+        const [currH, currM] = time24.split(':').map(Number);
+        let lateMins = (currH * 60 + currM) - (targetH * 60 + targetM);
+        lateMins = lateMins > 0 ? lateMins : 0;
+
+        attendance[name] = { in: timeStr, out: '-', late: lateMins, status: 'present' };
+        
+        const lateMsg = lateMins > 0 ? `⚠️ យឺត: <b>${formatLate(lateMins)}</b>` : `✅ ទាន់ពេល`;
+        sendToTelegram(`🔔 <b>CHECK-IN | ${CONFIG.schoolName}</b>\n\n📅 កាលបរិច្ឆេទ: ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n💼 តួនាទី: <i>${staff.role}</i>\n⏰ ម៉ោងចូល: ${timeStr}\n${lateMsg}`);
+        
+        alert("Check-In ជោគជ័យ!");
+    } else {
+        if (!attendance[name]) return alert("សូម Check-In ជាមុនសិន!");
+        if (attendance[name].out !== '-') return alert("អ្នកបាន Check-Out រួចហើយ!");
+
+        attendance[name].out = timeStr;
+        sendToTelegram(`🔔 <b>CHECK-OUT | ${CONFIG.schoolName}</b>\n\n📅 កាលបរិច្ឆេទ: ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n💼 តួនាទី: <i>${staff.role}</i>\n⏰ ម៉ោងចេញ: ${timeStr}`);
+        
+        alert("Check-Out ជោគជ័យ!");
+    }
+
+    localStorage.setItem('mikids_records', JSON.stringify(attendance));
+    renderDashboard();
+}
+
 function resetToday() {
-  if (!confirm('Reset ទិន្នន័យថ្ងៃនេះ?')) return;
-  state.todayRecords = {};
-  state.autoSentToday = { am: false, pm: false, sat: false };
-  localStorage.setItem('autoSentToday', JSON.stringify(state.autoSentToday));
-  saveAll();
-  refreshDashboard();
-  alert('✅ Reset រួចរាល់!');
+    if(confirm("តើអ្នកចង់លុបទិន្នន័យថ្ងៃនេះមែនទេ?")) {
+        attendance = {};
+        localStorage.removeItem('mikids_records');
+        renderDashboard();
+    }
 }
 
-// ─── UTILS ───────────────────────────────────────────────────
-function showStatus(id, type, msg) {
-  const el = document.getElementById(id);
-  el.className = 'status-msg show ' + type;
-  el.textContent = msg;
-  setTimeout(() => el.classList.remove('show'), 4000);
-}
-
-// ─── START ───────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', init);
+// ចាប់ផ្តើម
+window.onload = () => {
+    generateQR();
+    renderDashboard();
+    updateClock();
+};
 </script>
 </body>
 </html>
-
