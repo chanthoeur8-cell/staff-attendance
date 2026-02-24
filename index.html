@@ -53,7 +53,7 @@
                 <th>ឈ្មោះ</th>
                 <th>ចូល</th>
                 <th>ចេញ</th>
-                <th>យឺតជាក់ស្តែង</th>
+                <th>យឺត</th>
             </tr>
         </thead>
         <tbody id="attendance-list"></tbody>
@@ -69,7 +69,7 @@ const CONFIG = {
 };
 
 const STAFF_LIST = [
-    { name: "Chanthoeurn chhoeurn", role: "IT Support" },
+    { name: "Chanthoeurn chhoeurn", role: "IT" },
     { name: "Ashley villela", role: "English Teacher" },
     { name: "វិន សេរីភាព", role: "Assistant Teacher" },
     { name: "CHOT HORN", role: "Teacher" },
@@ -79,7 +79,7 @@ const STAFF_LIST = [
     { name: "Leang Sopheavy", role: "Computer Teacher" },
     { name: "Chamnan Veasna", role: "English Teacher" },
     { name: "Born Chhorda", role: "Teacher" },
-    { name: "SOK SREYPICE", role: "Teacher" },
+    { name: "SOK SREYPICE", role: "English Teacher" },
     { name: "Eng sreynin", role: "Receptionist" },
     { name: "កុសល សៀកម៉េង", role: "Assistant Teacher" },
     { name: "vat mouy saing", role: "Chinese Teacher" },
@@ -176,10 +176,11 @@ function sendToTelegram(msg) {
 window.onload = () => {
     new QRCode(document.getElementById("qrcode"), { text: CONFIG.githubLink, width: 150, height: 150 });
     const select = document.getElementById('staff-name');
-    select.innerHTML = '<option value="">-- រើសឈ្មោះរបស់អ្នក --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    select.innerHTML = '<option value="">-- SelectName --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
     renderTable();
 };
 </script>
 </body>
 </html>
+
 
