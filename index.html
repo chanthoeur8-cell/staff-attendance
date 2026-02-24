@@ -135,7 +135,7 @@ function sendSummaryToTelegram() {
 
 async function submitAttendance(type) {
     const name = document.getElementById('staff-name').value;
-    if(!name) return alert("សូមជ្រើសរើសឈ្មោះ!");
+    if(!name) return alert("SelectName!");
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -182,3 +182,4 @@ window.onload = () => {
 </script>
 </body>
 </html>
+
