@@ -109,7 +109,7 @@ function formatLate(totalMins) {
     if (totalMins <= 0) return "-";
     const h = Math.floor(totalMins / 60);
     const m = totalMins % 60;
-    return h > 0 ? `${h}ម ${m}ន` : `${m}ន`;
+    return h > 0 ? `${h}ម៉ោង ${m}នាទី` : `${m}នាទី`;
 }
 
 function renderTable() {
@@ -164,7 +164,7 @@ async function submitAttendance(type) {
     }
 
     const lateInfo = (type !== 'checkout' && lateMins > 0) ? `⚠️ យឺត: ${formatLate(lateMins)}` : (type !== 'checkout' ? '✅ ទាន់ពេល' : '');
-    sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n⏰ ម៉ោង: ${timeStr}\n${lateInfo}`);
+    sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\nRole: <b>${role}</b>\n⏰ ម៉ោង: ${timeStr}\n${lateInfo}`);
     
     localStorage.setItem('mikids_v2_db', JSON.stringify(records));
     alert("ស្កេនជោគជ័យ!");
@@ -202,10 +202,11 @@ function sendToTelegram(msg) {
 window.onload = () => {
     new QRCode(document.getElementById("qrcode"), { text: CONFIG.githubLink, width: 150, height: 150 });
     const select = document.getElementById('staff-name');
-    select.innerHTML = '<option value="">-- រើសឈ្មោះ --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    select.innerHTML = '<option value="">--SelectName --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
     renderTable();
 };
 </script>
 </body>
 </html>
+
 
