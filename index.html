@@ -8,95 +8,67 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
-            --bg: #0a0f1e; --card: #111827; --accent: #00e5ff;
-            --green: #10b981; --red: #ef4444; --text: #f1f5f9;
+            --bg: #0a0f1e; --card: #111827; --accent: #00e5ff; 
+            --green: #10b981; --red: #ef4444; --text: #f1f5f9; 
             --muted: #64748b; --border: rgba(255,255,255,0.07);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Space Grotesk', 'Noto Sans Khmer', sans-serif; }
         body { background: var(--bg); color: var(--text); padding: 15px; }
         .container { max-width: 900px; margin: 0 auto; }
-
+        
         @media screen and (max-width: 600px) { .admin-only { display: none; } }
 
         .card { background: var(--card); border-radius: 15px; border: 1px solid var(--border); padding: 20px; text-align: center; margin-bottom: 20px; }
         #qrcode { background: white; padding: 10px; display: inline-block; border-radius: 10px; margin: 15px 0; }
-        .scan-box { background: #1a2235; padding: 20px; border-radius: 15px; border: 1px solid var(--accent); margin-bottom: 15px; }
+        .scan-box { background: #1a2235; padding: 20px; border-radius: 15px; border: 1px solid var(--accent); }
         select, .btn { width: 100%; padding: 15px; margin-top: 10px; border-radius: 10px; font-size: 16px; border: none; font-weight: bold; cursor: pointer; }
         select { background: var(--bg); color: white; border: 1px solid var(--border); }
-
-        .btn-morning   { background: var(--green);  color: white; }
-        .btn-afternoon { background: #7c3aed;        color: white; }
-        .btn-checkout  { background: var(--red);     color: white; }
-        .btn-summary   { background: var(--accent);  color: #000; margin-top: 10px; }
-        .btn-refresh   { background: #1f2937;        color: var(--accent); margin-top: 10px; border: 1px solid var(--accent); }
-        .btn-reset     { background: #1f2937;        color: #f87171; margin-top: 10px; border: 1px solid var(--red); }
-        .btn:disabled  { opacity: 0.5; cursor: not-allowed; }
-
-        /* Setup box */
-        .setup-box { background: #1a1a2e; border: 1px dashed var(--accent); border-radius: 15px; padding: 20px; margin-bottom: 20px; }
-        .setup-box input { width: 100%; padding: 12px; border-radius: 8px; background: var(--bg); color: white; border: 1px solid var(--border); font-size: 14px; margin-top: 8px; }
-        .setup-box label { font-size: 13px; color: var(--muted); }
-
+        
+        .btn-morning { background: var(--green); color: white; }
+        .btn-afternoon { background: #7c3aed; color: white; }
+        .btn-checkout { background: var(--red); color: white; }
+        .btn-summary { background: var(--accent); color: #000; margin-top: 20px; }
+        .btn-reset { background: #374151; color: #f87171; margin-top: 10px; }
+        
         .table-wrap { overflow-x: auto; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; background: var(--card); min-width: 600px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
         th { background: #1f2937; color: var(--accent); }
         .late-text { color: var(--red); font-weight: bold; }
-        .ontime-text { color: var(--green); }
 
         .toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
             background: #1f2937; color: var(--text); padding: 12px 24px; border-radius: 10px;
-            border: 1px solid var(--accent); font-size: 14px; transition: transform 0.3s ease; z-index: 999;
+            border: 1px solid var(--accent); font-size: 14px; transition: transform 0.3s ease;
+            z-index: 999;
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
         .toast.success { border-color: var(--green); }
-        .toast.error   { border-color: var(--red); }
-
-        .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff3; border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .status-bar { font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px; }
-        .status-bar span { color: var(--accent); }
+        .toast.error { border-color: var(--red); }
     </style>
 </head>
 <body>
+
 <div class="container">
     <h2 style="text-align:center; color:var(--accent); margin-bottom:15px;">MIKIDS ATTENDANCE</h2>
 
-    <!-- ===== SETUP (Admin only on desktop) ===== -->
-    <div class="setup-box admin-only">
-        <h3 style="color:var(--accent); margin-bottom:10px;">⚙️ Setup Google Apps Script URL</h3>
-        <p style="font-size:13px; color:var(--muted); margin-bottom:8px;">
-            បញ្ចូល URL ពី Google Apps Script របស់អ្នក ដើម្បីភ្ជាប់ Google Sheets ជា database។
-            <a href="#instructions" style="color:var(--accent);">មើលណែនាំខាងក្រោម ↓</a>
-        </p>
-        <label>Apps Script Web App URL:</label>
-        <input type="text" id="apps-script-url" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" />
-        <button class="btn btn-morning" style="margin-top:10px;" onclick="saveConfig()">💾 រក្សាទុក URL</button>
-    </div>
-
-    <!-- ===== QR Code ===== -->
     <div class="card admin-only">
         <h3>QR សម្រាប់ស្កេន (Admin)</h3>
         <div id="qrcode"></div>
     </div>
 
-    <!-- ===== Scan Box ===== -->
     <div class="scan-box">
         <label>ជ្រើសរើសឈ្មោះបុគ្គលិក:</label>
         <select id="staff-name"></select>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top:10px;">
-            <button class="btn btn-morning"   id="btn-am"  onclick="submitAttendance('morning')">☀️ CheckIn(Morning)</button>
-            <button class="btn btn-afternoon" id="btn-pm"  onclick="submitAttendance('afternoon')">🌤️ CheckIn(Afternoon)</button>
-            <button class="btn btn-checkout"  id="btn-out" onclick="submitAttendance('checkout')">🚪 CheckOut</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <button class="btn btn-morning" onclick="submitAttendance('morning')">☀️ CheckIn(Morning)</button>
+            <button class="btn btn-afternoon" onclick="submitAttendance('afternoon')">🌤️ CheckIn(Afternoon)</button>
+            <button class="btn btn-checkout" onclick="submitAttendance('checkout')">🚪 CheckOut</button>
         </div>
-        <div class="status-bar" id="status-bar">🔄 ចុច Refresh ដើម្បីផ្ទុកទិន្នន័យ</div>
     </div>
 
-    <button class="btn btn-refresh" onclick="loadRecords()">🔄 Refresh ទិន្នន័យ</button>
     <button class="btn btn-summary admin-only" onclick="sendSummaryToTelegram()">📤 ផ្ញើរបាយការណ៍សរុបទៅ Telegram</button>
-    <button class="btn btn-reset admin-only" onclick="resetRecords()">🗑️ Reset ទិន្នន័យថ្ងៃនេះ</button>
+    <button class="btn btn-reset admin-only" onclick="resetRecords()">🗑️ លុបទិន្នន័យថ្ងៃនេះ (Reset)</button>
 
     <div class="table-wrap">
         <table>
@@ -113,80 +85,6 @@
             <tbody id="attendance-list"></tbody>
         </table>
     </div>
-
-    <!-- ===== Instructions ===== -->
-    <div id="instructions" class="setup-box admin-only" style="margin-top:30px;">
-        <h3 style="color:var(--accent); margin-bottom:12px;">📋 ណែនាំតំឡើង Google Sheets</h3>
-        <ol style="font-size:13px; color:var(--muted); line-height:2; padding-left:18px;">
-            <li>បើក <a href="https://sheets.google.com" target="_blank" style="color:var(--accent);">Google Sheets</a> ហើយបង្កើត Spreadsheet ថ្មី ដាក់ឈ្មោះ <b style="color:white;">MIKIDS_Attendance</b></li>
-            <li>ចូល <b style="color:white;">Extensions → Apps Script</b></li>
-            <li>លុប code ចាស់ ហើយ paste code ខាងក្រោម:</li>
-        </ol>
-        <pre style="background:#0a0f1e; padding:15px; border-radius:8px; font-size:11px; color:#a5f3fc; overflow-x:auto; margin:10px 0; white-space:pre-wrap;">
-const SHEET_NAME = 'Attendance';
-
-function doGet(e) {
-  const action = e.parameter.action;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(['Date','Name','Role','Type','Time','LateMins']);
-  }
-
-  if (action === 'get') {
-    const today = new Date().toISOString().slice(0,10);
-    const data = sheet.getDataRange().getValues();
-    const result = {};
-    data.forEach((row, i) => {
-      if (i === 0) return;
-      const [date, name, role, type, time, late] = row;
-      if (date === today) {
-        if (!result[name]) result[name] = { morning:null, afternoon:null, checkout:null };
-        if (type === 'morning')   result[name].morning   = { time, late: Number(late) };
-        if (type === 'afternoon') result[name].afternoon = { time, late: Number(late) };
-        if (type === 'checkout')  result[name].checkout  = time;
-      }
-    });
-    return ContentService.createTextOutput(JSON.stringify({ ok:true, records:result }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  if (action === 'reset') {
-    const today = new Date().toISOString().slice(0,10);
-    const data = sheet.getDataRange().getValues();
-    for (let i = data.length; i >= 2; i--) {
-      if (data[i-1][0] === today) sheet.deleteRow(i);
-    }
-    return ContentService.createTextOutput(JSON.stringify({ ok:true }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  return ContentService.createTextOutput(JSON.stringify({ ok:false, error:'Unknown action' }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  const body = JSON.parse(e.postData.contents);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(['Date','Name','Role','Type','Time','LateMins']);
-  }
-  const today = new Date().toISOString().slice(0,10);
-  sheet.appendRow([today, body.name, body.role, body.type, body.time, body.late || 0]);
-  return ContentService.createTextOutput(JSON.stringify({ ok:true }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-        </pre>
-        <ol start="4" style="font-size:13px; color:var(--muted); line-height:2; padding-left:18px;">
-            <li>ចុច <b style="color:white;">Deploy → New deployment</b></li>
-            <li>ជ្រើស <b style="color:white;">Web app</b>, Set <b style="color:white;">Execute as: Me</b>, <b style="color:white;">Who has access: Anyone</b></li>
-            <li>ចុច <b style="color:white;">Deploy</b> → Copy <b style="color:white;">Web app URL</b></li>
-            <li>Paste URL ខាងលើក្នុង Setup box ហើយចុច <b style="color:white;">រក្សាទុក</b></li>
-        </ol>
-    </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -195,8 +93,8 @@ function doPost(e) {
 const CONFIG = {
     token: '8242266919:AAGE6uMJ_-UvM-3KBZkJVFhJyTLvcTVW5tQ',
     chatId: '-1003584563383',
-    morningLate: '07:05',
-    afternoonLate: '13:05',
+    morningLate: '07:05',   
+    afternoonLate: '13:05', 
     githubLink: 'https://chanthoeur8-cell.github.io/Attendance-staff/'
 };
 
@@ -219,190 +117,125 @@ const STAFF_LIST = [
     { name: "Dorn Sreyneth", role: "English Teacher" }
 ];
 
-let records = {}; // loaded from Google Sheets
-let appsScriptUrl = localStorage.getItem('mikids_apps_script_url') || '';
-
-// ====== CONFIG SAVE ======
-function saveConfig() {
-    const url = document.getElementById('apps-script-url').value.trim();
-    if (!url.startsWith('https://script.google.com')) return showToast('URL មិនត្រឹមត្រូវ!', 'error');
-    localStorage.setItem('mikids_apps_script_url', url);
-    appsScriptUrl = url;
-    showToast('✅ រក្សាទុក URL រួចរាល់!');
-    loadRecords();
+// ========== AUTO RESET EACH DAY ==========
+const TODAY = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+const storedDate = localStorage.getItem('mikids_date');
+if (storedDate !== TODAY) {
+    // New day — clear records
+    localStorage.removeItem('mikids_v2_db');
+    localStorage.setItem('mikids_date', TODAY);
 }
 
-// ====== TOAST ======
+let records = JSON.parse(localStorage.getItem('mikids_v2_db')) || {};
+
+// ========== TOAST ==========
 function showToast(msg, type = 'success') {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.className = `toast ${type} show`;
-    setTimeout(() => { t.className = 'toast'; }, 3500);
-}
-
-function setLoading(btn, loading) {
-    const el = document.getElementById(btn);
-    if (loading) {
-        el._orig = el.innerHTML;
-        el.innerHTML = `<span class="loading"></span> កំពុងដំណើរការ...`;
-        el.disabled = true;
-    } else {
-        el.innerHTML = el._orig || el.innerHTML;
-        el.disabled = false;
-    }
+    setTimeout(() => { t.className = 'toast'; }, 3000);
 }
 
 function formatLate(totalMins) {
-    if (!totalMins || totalMins <= 0) return null;
+    if (totalMins <= 0) return "-";
     const h = Math.floor(totalMins / 60);
     const m = totalMins % 60;
     return h > 0 ? `${h}ម៉ោង ${m}នាទី` : `${m}នាទី`;
 }
 
-// ====== LOAD FROM GOOGLE SHEETS ======
-async function loadRecords() {
-    if (!appsScriptUrl) {
-        document.getElementById('status-bar').innerHTML = '⚠️ សូមបញ្ចូល Apps Script URL ជាមុនសិន';
-        return;
-    }
-    document.getElementById('status-bar').innerHTML = '<span class="loading"></span> កំពុងផ្ទុក...';
-    try {
-        const res = await fetch(`${appsScriptUrl}?action=get`, { method: 'GET' });
-        const data = await res.json();
-        if (data.ok) {
-            records = data.records || {};
-            renderTable();
-            const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            document.getElementById('status-bar').innerHTML = `✅ ទិន្នន័យថ្មី | <span>Updated: ${now}</span>`;
-        }
-    } catch(e) {
-        document.getElementById('status-bar').innerHTML = '❌ មិនអាចភ្ជាប់ Google Sheets';
-    }
-}
-
-// ====== SUBMIT ATTENDANCE ======
-async function submitAttendance(type) {
-    if (!appsScriptUrl) return showToast('⚠️ សូមបញ្ចូល Apps Script URL ជាមុន!', 'error');
-    const name = document.getElementById('staff-name').value;
-    if (!name) return showToast('សូមជ្រើសរើសឈ្មោះ!', 'error');
-
-    // Check duplicate from loaded records
-    if (!records[name]) records[name] = {};
-    if (type === 'morning'   && records[name].morning)   return showToast('អ្នកបានស្កេនព្រឹករួចហើយ!', 'error');
-    if (type === 'afternoon' && records[name].afternoon) return showToast('អ្នកបានស្កេនថ្ងៃរួចហើយ!', 'error');
-    if (type === 'checkout'  && records[name].checkout)  return showToast('អ្នកបានស្កេនចេញរួចហើយ!', 'error');
-
-    const btnMap = { morning: 'btn-am', afternoon: 'btn-pm', checkout: 'btn-out' };
-    setLoading(btnMap[type], true);
-
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const time24  = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-    const dateStr = now.toLocaleDateString('km-KH');
-    const staff   = STAFF_LIST.find(s => s.name === name);
-    const role    = staff ? staff.role : 'N/A';
-
-    let lateMins = 0;
-    let label = '';
-
-    if (type === 'morning') {
-        const [th, tm] = CONFIG.morningLate.split(':').map(Number);
-        const [ch, cm] = time24.split(':').map(Number);
-        lateMins = Math.max(0, (ch * 60 + cm) - (th * 60 + tm));
-        label = '☀️ Morning Check-In';
-    } else if (type === 'afternoon') {
-        const [th, tm] = CONFIG.afternoonLate.split(':').map(Number);
-        const [ch, cm] = time24.split(':').map(Number);
-        lateMins = Math.max(0, (ch * 60 + cm) - (th * 60 + tm));
-        label = '🌤️ Afternoon Check-In';
-    } else {
-        label = '🚪 Check-Out';
-    }
-
-    const lateInfo = (type !== 'checkout' && lateMins > 0)
-        ? `⚠️ យឺត: ${formatLate(lateMins)}`
-        : (type !== 'checkout' ? '✅ ទាន់ពេល' : '');
-
-    try {
-        // Save to Google Sheets
-        await fetch(appsScriptUrl, {
-            method: 'POST',
-            body: JSON.stringify({ name, role, type, time: timeStr, late: lateMins }),
-            headers: { 'Content-Type': 'text/plain' } // avoid CORS preflight
-        });
-
-        // Update local view immediately
-        if (type === 'morning')   records[name].morning   = { time: timeStr, late: lateMins };
-        if (type === 'afternoon') records[name].afternoon = { time: timeStr, late: lateMins };
-        if (type === 'checkout')  records[name].checkout  = timeStr;
-        renderTable();
-
-        // Send Telegram
-        sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\nRole: <b>${role}</b>\n⏰ ម៉ោង: ${timeStr}\n${lateInfo}`);
-
-        showToast('✅ ស្កេនជោគជ័យ!');
-    } catch(e) {
-        showToast('❌ Error! សូមពិនិត្យ Apps Script URL', 'error');
-    }
-
-    setLoading(btnMap[type], false);
-}
-
-// ====== RENDER TABLE ======
 function renderTable() {
     const list = document.getElementById('attendance-list');
     list.innerHTML = '';
     STAFF_LIST.forEach(s => {
-        const r = records[s.name] || {};
-        const lateAM = r.morning   ? formatLate(r.morning.late)   : null;
-        const latePM = r.afternoon ? formatLate(r.afternoon.late) : null;
+        const r = records[s.name] || { morning: null, afternoon: null, checkout: null };
         list.innerHTML += `<tr>
-            <td><b>${s.name}</b><br><small style="color:var(--muted)">${s.role}</small></td>
-            <td>${r.morning   ? r.morning.time   : '-'}</td>
-            <td>${lateAM ? `<span class="late-text">${lateAM}</span>` : (r.morning ? '<span class="ontime-text">✅ ទាន់</span>' : '-')}</td>
+            <td><b>${s.name}</b></td>
+            <td>${r.morning ? r.morning.time : '-'}</td>
+            <td class="late-text">${r.morning ? formatLate(r.morning.late) : '-'}</td>
             <td>${r.afternoon ? r.afternoon.time : '-'}</td>
-            <td>${latePM ? `<span class="late-text">${latePM}</span>` : (r.afternoon ? '<span class="ontime-text">✅ ទាន់</span>' : '-')}</td>
-            <td>${r.checkout  ? r.checkout       : '-'}</td>
+            <td class="late-text">${r.afternoon ? formatLate(r.afternoon.late) : '-'}</td>
+            <td>${r.checkout ? r.checkout : '-'}</td>
         </tr>`;
     });
 }
 
-// ====== SUMMARY TELEGRAM ======
+async function submitAttendance(type) {
+    const name = document.getElementById('staff-name').value;
+    if (!name) return showToast("សូមជ្រើសរើសឈ្មោះ!", 'error');
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const time24 = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString('km-KH');
+
+    // ✅ FIX: use staff.role instead of undefined 'role'
+    const staff = STAFF_LIST.find(s => s.name === name);
+    const role = staff ? staff.role : 'N/A';
+
+    if (!records[name]) records[name] = { morning: null, afternoon: null, checkout: null };
+
+    let lateMins = 0;
+    let label = "";
+
+    if (type === 'morning') {
+        if (records[name].morning) return showToast("អ្នកបានស្កេនព្រឹករួចហើយ!", 'error');
+        const [th, tm] = CONFIG.morningLate.split(':').map(Number);
+        const [ch, cm] = time24.split(':').map(Number);
+        lateMins = Math.max(0, (ch * 60 + cm) - (th * 60 + tm));
+        records[name].morning = { time: timeStr, late: lateMins };
+        label = "☀️ Morning Check-In";
+    } else if (type === 'afternoon') {
+        if (records[name].afternoon) return showToast("អ្នកបានស្កេនថ្ងៃរួចហើយ!", 'error');
+        const [th, tm] = CONFIG.afternoonLate.split(':').map(Number);
+        const [ch, cm] = time24.split(':').map(Number);
+        lateMins = Math.max(0, (ch * 60 + cm) - (th * 60 + tm));
+        records[name].afternoon = { time: timeStr, late: lateMins };
+        label = "🌤️ Afternoon Check-In";
+    } else {
+        if (records[name].checkout) return showToast("អ្នកបានស្កេនចេញរួចហើយ!", 'error');
+        records[name].checkout = timeStr;
+        label = "🚪 Check-Out";
+    }
+
+    const lateInfo = (type !== 'checkout' && lateMins > 0) 
+        ? `⚠️ យឺត: ${formatLate(lateMins)}` 
+        : (type !== 'checkout' ? '✅ ទាន់ពេល' : '');
+
+    sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\nRole: <b>${role}</b>\n⏰ ម៉ោង: ${timeStr}\n${lateInfo}`);
+    
+    localStorage.setItem('mikids_v2_db', JSON.stringify(records));
+    showToast("✅ ស្កេនជោគជ័យ!", 'success');
+    renderTable();
+}
+
 function sendSummaryToTelegram() {
     const dateStr = new Date().toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    let msg = `📊 <b>របាយការណ៍សរុប | MIKIDS</b>\n📅 ${dateStr}\n\n`;
+    let msg = `📊 <b>របាយការណ៍សរុប</b>\n📅 ${dateStr}\n\n`;
+
     STAFF_LIST.forEach((s, i) => {
         const r = records[s.name];
         if (r && (r.morning || r.afternoon || r.checkout)) {
-            const m  = r.morning   ? r.morning.time   : '-';
-            const a  = r.afternoon ? r.afternoon.time : '-';
-            const o  = r.checkout  ? r.checkout       : '-';
-            const lm = r.morning   && r.morning.late   > 0 ? ` (យឺត ${formatLate(r.morning.late)})` : '';
-            const la = r.afternoon && r.afternoon.late > 0 ? ` (យឺត ${formatLate(r.afternoon.late)})` : '';
-            msg += `${i+1}. ✅ <b>${s.name}</b>\n   AM: ${m}${lm} | PM: ${a}${la} | Out: ${o}\n`;
+            const m = r.morning ? r.morning.time : '-';
+            const a = r.afternoon ? r.afternoon.time : '-';
+            const o = r.checkout ? r.checkout : '-';
+            msg += `${i+1}. ✅ <b>${s.name}</b>\n   AM: ${m} | PM: ${a} | Out: ${o}\n`;
         } else {
             msg += `${i+1}. ❌ <b>${s.name}</b>: អវត្តមាន\n`;
         }
     });
+
     sendToTelegram(msg);
-    showToast('📤 ផ្ញើរបាយការណ៍រួចរាល់!');
+    showToast("📤 ផ្ញើរបាយការណ៍រួចរាល់!");
 }
 
-// ====== RESET ======
-async function resetRecords() {
-    if (!confirm('តើអ្នកពិតជាចង់លុបទិន្នន័យថ្ងៃនេះទាំងអស់?')) return;
-    if (!appsScriptUrl) return showToast('⚠️ Apps Script URL missing!', 'error');
-    try {
-        await fetch(`${appsScriptUrl}?action=reset`);
-        records = {};
-        renderTable();
-        showToast('🗑️ Reset រួចរាល់!', 'error');
-    } catch(e) {
-        showToast('❌ Reset failed!', 'error');
-    }
+function resetRecords() {
+    if (!confirm("តើអ្នកពិតជាចង់លុបទិន្នន័យថ្ងៃនេះទាំងអស់?")) return;
+    records = {};
+    localStorage.removeItem('mikids_v2_db');
+    renderTable();
+    showToast("🗑️ លុបទិន្នន័យរួចរាល់!", 'error');
 }
 
-// ====== TELEGRAM ======
 function sendToTelegram(msg) {
     fetch(`https://api.telegram.org/bot${CONFIG.token}/sendMessage`, {
         method: 'POST',
@@ -411,22 +244,10 @@ function sendToTelegram(msg) {
     });
 }
 
-// ====== INIT ======
 window.onload = () => {
-    new QRCode(document.getElementById('qrcode'), { text: CONFIG.githubLink, width: 150, height: 150 });
-
+    new QRCode(document.getElementById("qrcode"), { text: CONFIG.githubLink, width: 150, height: 150 });
     const select = document.getElementById('staff-name');
-    select.innerHTML = '<option value="">-- SelectName --</option>' +
-        STAFF_LIST.map(s => `<option value="${s.name}">${s.name} (${s.role})</option>`).join('');
-
-    // Restore saved URL
-    if (appsScriptUrl) {
-        document.getElementById('apps-script-url').value = appsScriptUrl;
-        loadRecords();
-        // Auto-refresh every 30 seconds
-        setInterval(loadRecords, 30000);
-    }
-
+    select.innerHTML = '<option value="">-- Select --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
     renderTable();
 };
 </script>
