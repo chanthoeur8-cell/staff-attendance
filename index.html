@@ -36,6 +36,32 @@
         th { background: #1f2937; color: var(--accent); }
         .late-text { color: var(--red); font-weight: bold; }
 
+        /* ===== EDITABLE CELL STYLES ===== */
+        .cell-input {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: 'Space Grotesk', 'Noto Sans Khmer', sans-serif;
+            font-size: 11px;
+            width: 100%;
+            padding: 2px 4px;
+            border-radius: 5px;
+            outline: none;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .cell-input:hover { background: rgba(0,229,255,0.05); }
+        .cell-input:focus {
+            background: rgba(0,229,255,0.08);
+            box-shadow: 0 0 0 1px var(--accent);
+            color: var(--accent);
+            cursor: text;
+        }
+        .cell-input.has-value { color: #a3e635; }
+        .cell-input.late-val { color: var(--red) !important; }
+        .cell-input::placeholder { color: var(--muted); }
+        /* ================================ */
+
         .toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
             background: #1f2937; color: var(--text); padding: 12px 24px; border-radius: 10px;
@@ -118,10 +144,9 @@ const STAFF_LIST = [
 ];
 
 // ========== AUTO RESET EACH DAY ==========
-const TODAY = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+const TODAY = new Date().toISOString().slice(0, 10);
 const storedDate = localStorage.getItem('mikids_date');
 if (storedDate !== TODAY) {
-    // New day — clear records
     localStorage.removeItem('mikids_v2_db');
     localStorage.setItem('mikids_date', TODAY);
 }
@@ -137,10 +162,14 @@ function showToast(msg, type = 'success') {
 }
 
 function formatLate(totalMins) {
-    if (totalMins <= 0) return "-";
+    if (totalMins <= 0) return "";
     const h = Math.floor(totalMins / 60);
     const m = totalMins % 60;
     return h > 0 ? `${h}ម៉ោង ${m}នាទី` : `${m}នាទី`;
+}
+
+function saveRecords() {
+    localStorage.setItem('mikids_v2_db', JSON.stringify(records));
 }
 
 function renderTable() {
@@ -148,15 +177,60 @@ function renderTable() {
     list.innerHTML = '';
     STAFF_LIST.forEach(s => {
         const r = records[s.name] || { morning: null, afternoon: null, checkout: null };
+
+        const amTime   = r.morning   ? r.morning.time   : '';
+        const amLate   = r.morning   ? formatLate(r.morning.late) : '';
+        const pmTime   = r.afternoon ? r.afternoon.time : '';
+        const pmLate   = r.afternoon ? formatLate(r.afternoon.late) : '';
+        const outTime  = r.checkout  ? r.checkout       : '';
+
         list.innerHTML += `<tr>
             <td><b>${s.name}</b></td>
-            <td>${r.morning ? r.morning.time : '-'}</td>
-            <td class="late-text">${r.morning ? formatLate(r.morning.late) : '-'}</td>
-            <td>${r.afternoon ? r.afternoon.time : '-'}</td>
-            <td class="late-text">${r.afternoon ? formatLate(r.afternoon.late) : '-'}</td>
-            <td>${r.checkout ? r.checkout : '-'}</td>
+            <td><input class="cell-input ${amTime ? 'has-value' : ''}" 
+                placeholder="-" value="${amTime}"
+                onchange="manualEdit('${s.name}','am_time',this.value,this)" /></td>
+            <td><input class="cell-input late-val ${amLate ? 'has-value' : ''}" 
+                placeholder="-" value="${amLate}"
+                onchange="manualEdit('${s.name}','am_late',this.value,this)" /></td>
+            <td><input class="cell-input ${pmTime ? 'has-value' : ''}" 
+                placeholder="-" value="${pmTime}"
+                onchange="manualEdit('${s.name}','pm_time',this.value,this)" /></td>
+            <td><input class="cell-input late-val ${pmLate ? 'has-value' : ''}" 
+                placeholder="-" value="${pmLate}"
+                onchange="manualEdit('${s.name}','pm_late',this.value,this)" /></td>
+            <td><input class="cell-input ${outTime ? 'has-value' : ''}" 
+                placeholder="-" value="${outTime}"
+                onchange="manualEdit('${s.name}','checkout',this.value,this)" /></td>
         </tr>`;
     });
+}
+
+// ===== Manual edit handler =====
+function manualEdit(name, field, value, el) {
+    if (!records[name]) records[name] = { morning: null, afternoon: null, checkout: null };
+
+    if (field === 'am_time') {
+        if (!records[name].morning) records[name].morning = { time: '', late: 0 };
+        records[name].morning.time = value;
+    } else if (field === 'am_late') {
+        if (!records[name].morning) records[name].morning = { time: '', late: 0 };
+        // store raw text — convert mins if number entered
+        const mins = parseInt(value);
+        records[name].morning.late = isNaN(mins) ? 0 : mins;
+        // keep display text as-is
+    } else if (field === 'pm_time') {
+        if (!records[name].afternoon) records[name].afternoon = { time: '', late: 0 };
+        records[name].afternoon.time = value;
+    } else if (field === 'pm_late') {
+        if (!records[name].afternoon) records[name].afternoon = { time: '', late: 0 };
+        const mins = parseInt(value);
+        records[name].afternoon.late = isNaN(mins) ? 0 : mins;
+    } else if (field === 'checkout') {
+        records[name].checkout = value;
+    }
+
+    el.classList.toggle('has-value', !!value);
+    saveRecords();
 }
 
 async function submitAttendance(type) {
@@ -168,7 +242,6 @@ async function submitAttendance(type) {
     const time24 = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
     const dateStr = now.toLocaleDateString('km-KH');
 
-    // ✅ FIX: use staff.role instead of undefined 'role'
     const staff = STAFF_LIST.find(s => s.name === name);
     const role = staff ? staff.role : 'N/A';
 
@@ -203,7 +276,7 @@ async function submitAttendance(type) {
 
     sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\nRole: <b>${role}</b>\n⏰ ម៉ោង: ${timeStr}\n${lateInfo}`);
     
-    localStorage.setItem('mikids_v2_db', JSON.stringify(records));
+    saveRecords();
     showToast("✅ ស្កេនជោគជ័យ!", 'success');
     renderTable();
 }
