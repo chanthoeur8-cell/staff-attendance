@@ -164,7 +164,7 @@ async function submitAttendance(type) {
     }
 
     const lateInfo = (type !== 'checkout' && lateMins > 0) ? `⚠️ យឺត: ${formatLate(lateMins)}` : (type !== 'checkout' ? '✅ ទាន់ពេល' : '');
-    sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\nRole: <b>${role}</b>\n⏰ ម៉ោង: ${timeStr}\n${lateInfo}`);
+    sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\n⏰ ម៉ោង: ${timeStr}\n${lateInfo}`);
     
     localStorage.setItem('mikids_v2_db', JSON.stringify(records));
     alert("ស្កេនជោគជ័យ!");
@@ -208,5 +208,6 @@ window.onload = () => {
 </script>
 </body>
 </html>
+
 
 
