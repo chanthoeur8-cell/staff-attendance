@@ -29,6 +29,7 @@
         .btn-checkout { background: var(--red); color: white; }
         .btn-summary { background: var(--accent); color: #000; margin-top: 20px; }
         .btn-reset { background: #374151; color: #f87171; margin-top: 10px; }
+        .btn-setloc { background: #f59e0b; color: #000; margin-top: 10px; }
         
         .table-wrap { overflow-x: auto; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; background: var(--card); min-width: 600px; }
@@ -62,11 +63,18 @@
         .cell-input::placeholder { color: var(--muted); }
         /* ================================ */
 
+        .loc-status {
+            font-size: 12px; margin-top: 10px; padding: 8px; border-radius: 8px;
+            background: rgba(255,255,255,0.03); color: var(--muted);
+        }
+        .loc-status.ok { color: var(--green); }
+        .loc-status.bad { color: var(--red); }
+
         .toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
             background: #1f2937; color: var(--text); padding: 12px 24px; border-radius: 10px;
             border: 1px solid var(--accent); font-size: 14px; transition: transform 0.3s ease;
-            z-index: 999;
+            z-index: 999; max-width: 90%; text-align: center;
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
         .toast.success { border-color: var(--green); }
@@ -81,6 +89,9 @@
     <div class="card admin-only">
         <h3>QR សម្រាប់ស្កេន (Admin)</h3>
         <div id="qrcode"></div>
+        <button class="btn btn-setloc" onclick="setSchoolLocation()">📍 កែប្រែទីតាំងសាលា (ជម្រើស — ប្រើតែពេលចង់ប្តូរទីតាំង)</button>
+        <button class="btn" style="background:#1f2937; color:var(--accent); border:1px solid var(--accent); margin-top:10px;" onclick="window.open(CONFIG.schoolMapLink, '_blank')">🗺️ មើលទីតាំងសាលាលើ Google Maps</button>
+        <div class="loc-status" id="loc-status-display">កំពុងពិនិត្យទីតាំងសាលា...</div>
     </div>
 
     <div class="scan-box">
@@ -91,6 +102,8 @@
             <button class="btn btn-afternoon" onclick="submitAttendance('afternoon')">🌤️ CheckIn(Afternoon)</button>
             <button class="btn btn-checkout" onclick="submitAttendance('checkout')">🚪 CheckOut</button>
         </div>
+        <div class="loc-status" id="loc-status-scan"></div>
+        <a href="#" onclick="window.open(CONFIG.schoolMapLink, '_blank'); return false;" style="display:block; text-align:center; margin-top:12px; color:var(--accent); font-size:12px; text-decoration:underline;">🗺️ មើលទីតាំងសាលា</a>
     </div>
 
     <button class="btn btn-summary admin-only" onclick="sendSummaryToTelegram()">📤 ផ្ញើរបាយការណ៍សរុបទៅ Telegram</button>
@@ -121,7 +134,11 @@ const CONFIG = {
     chatId: '-1003584563383',
     morningLate: '07:05',   
     afternoonLate: '13:05', 
-    githubLink: 'https://chanthoeur8-cell.github.io/Attendance-staff/'
+    githubLink: 'https://chanthoeur8-cell.github.io/Attendance-staff/',
+    schoolMapLink: 'https://goo.gl/maps/WVQkhMkksk1uiJrU7',
+    schoolLat: 11.615850,
+    schoolLng: 104.908336,
+    allowedRadiusMeters: 10000 // អាចកែបានតាមចង់បាន — ចម្ងាយអតិបរមាដែលអនុញ្ញាតឲ្យស្កេន (10គីឡូម៉ែត្រ)
 };
 
 const STAFF_LIST = [
@@ -155,12 +172,90 @@ if (storedDate !== TODAY) {
 
 let records = JSON.parse(localStorage.getItem('mikids_v2_db')) || {};
 
+// ========== SCHOOL LOCATION (GPS GATE) ==========
+// admin ត្រូវចុច "កំណត់ទីតាំងសាលា" ម្តងនៅសាលា ដើម្បីរក្សាទុកកូអរដោនេពិតប្រាកដ
+function getSchoolLocation() {
+    const raw = localStorage.getItem('mikids_school_location');
+    if (raw) return JSON.parse(raw);
+    // ទីតាំងសាលាដែលបានកំណត់ស្រាប់ក្នុងកូដ (MiKids International School)
+    return { lat: CONFIG.schoolLat, lng: CONFIG.schoolLng };
+}
+
+function setSchoolLocation() {
+    if (!navigator.geolocation) {
+        showToast("ឧបករណ៍នេះមិនគាំទ្រ GPS ទេ!", 'error');
+        return;
+    }
+    showToast("កំពុងចាប់ទីតាំង...", 'success');
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            localStorage.setItem('mikids_school_location', JSON.stringify(loc));
+            showToast("✅ បានកំណត់ទីតាំងសាលារួចរាល់!", 'success');
+            updateLocationStatusDisplay();
+        },
+        (err) => {
+            showToast("❌ មិនអាចចាប់ទីតាំងបាន: " + err.message, 'error');
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+    );
+}
+
+function haversineDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371000; // earth radius in meters
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+function updateLocationStatusDisplay() {
+    const el = document.getElementById('loc-status-display');
+    if (!el) return;
+    const school = getSchoolLocation();
+    const isCustom = !!localStorage.getItem('mikids_school_location');
+    el.textContent = `✅ ទីតាំងសាលា: ${school.lat.toFixed(6)}, ${school.lng.toFixed(6)} ${isCustom ? '(កំណត់ដោយដៃ)' : '(MiKids School)'} | ចម្ងាយអនុញ្ញាត: ${CONFIG.allowedRadiusMeters}m`;
+    el.className = 'loc-status ok';
+}
+
+// ត្រឡប់ជា Promise: resolve({ok:true}) ឬ resolve({ok:false, message})
+function verifyLocation() {
+    return new Promise((resolve) => {
+        const school = getSchoolLocation();
+        if (!navigator.geolocation) {
+            resolve({ ok: false, message: "❌ ឧបករណ៍នេះមិនគាំទ្រការចាប់ទីតាំង GPS ទេ!" });
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const dist = haversineDistance(pos.coords.latitude, pos.coords.longitude, school.lat, school.lng);
+                if (dist <= CONFIG.allowedRadiusMeters) {
+                    resolve({ ok: true, distance: dist });
+                } else {
+                    resolve({ ok: false, message: `❌ អ្នកនៅឆ្ងាយពីសាលា ${Math.round(dist)}m! សូមចូលមកកាន់សាលាដើម្បីស្កេន (អនុញ្ញាតត្រឹម ${CONFIG.allowedRadiusMeters}m)` });
+                }
+            },
+            (err) => {
+                let msg = "❌ មិនអាចទទួលបានទីតាំងរបស់អ្នកទេ។";
+                if (err.code === 1) msg = "❌ សូមអនុញ្ញាតការចូលប្រើទីតាំង (Location Permission) ក្នុង browser របស់អ្នក!";
+                else if (err.code === 2) msg = "❌ មិនអាចកំណត់ទីតាំងបាន សូមពិនិត្យ GPS/Internet!";
+                else if (err.code === 3) msg = "❌ ការចាប់ទីតាំងយូរពេក សូមព្យាយាមម្តងទៀត!";
+                resolve({ ok: false, message: msg });
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+    });
+}
+
 // ========== TOAST ==========
 function showToast(msg, type = 'success') {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.className = `toast ${type} show`;
-    setTimeout(() => { t.className = 'toast'; }, 3000);
+    setTimeout(() => { t.className = 'toast'; }, 3500);
 }
 
 function formatLate(totalMins) {
@@ -216,10 +311,8 @@ function manualEdit(name, field, value, el) {
         records[name].morning.time = value;
     } else if (field === 'am_late') {
         if (!records[name].morning) records[name].morning = { time: '', late: 0 };
-        // store raw text — convert mins if number entered
         const mins = parseInt(value);
         records[name].morning.late = isNaN(mins) ? 0 : mins;
-        // keep display text as-is
     } else if (field === 'pm_time') {
         if (!records[name].afternoon) records[name].afternoon = { time: '', late: 0 };
         records[name].afternoon.time = value;
@@ -238,6 +331,20 @@ function manualEdit(name, field, value, el) {
 async function submitAttendance(type) {
     const name = document.getElementById('staff-name').value;
     if (!name) return showToast("សូមជ្រើសរើសឈ្មោះ!", 'error');
+
+    const scanStatus = document.getElementById('loc-status-scan');
+    scanStatus.className = 'loc-status';
+    scanStatus.textContent = '📍 កំពុងពិនិត្យទីតាំងរបស់អ្នក...';
+
+    const locResult = await verifyLocation();
+    if (!locResult.ok) {
+        scanStatus.textContent = locResult.message;
+        scanStatus.className = 'loc-status bad';
+        showToast(locResult.message, 'error');
+        return;
+    }
+    scanStatus.textContent = `✅ ទីតាំងត្រឹមត្រូវ (ចម្ងាយ ${Math.round(locResult.distance)}m ពីសាលា)`;
+    scanStatus.className = 'loc-status ok';
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -276,7 +383,7 @@ async function submitAttendance(type) {
         ? `⚠️ យឺត: ${formatLate(lateMins)}` 
         : (type !== 'checkout' ? '✅ ទាន់ពេល' : '');
 
-    sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\nRole: <b>${role}</b>\n⏰ ម៉ោង: ${timeStr}\n${lateInfo}`);
+    sendToTelegram(`🔔 <b>${label} | MIKIDS</b>\n📅 ${dateStr}\n👤 ឈ្មោះ: <b>${name}</b>\nRole: <b>${role}</b>\n⏰ ម៉ោង: ${timeStr}\n📍 ចម្ងាយ: ${Math.round(locResult.distance)}m\n${lateInfo}`);
     
     saveRecords();
     showToast("✅ ស្កេនជោគជ័យ!", 'success');
@@ -324,6 +431,7 @@ window.onload = () => {
     const select = document.getElementById('staff-name');
     select.innerHTML = '<option value="">-- Select --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
     renderTable();
+    updateLocationStatusDisplay();
 };
 </script>
 </body>
