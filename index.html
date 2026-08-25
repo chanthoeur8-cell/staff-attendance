@@ -30,6 +30,7 @@
         .btn-summary { background: var(--accent); color: #000; margin-top: 20px; }
         .btn-reset { background: #374151; color: #f87171; margin-top: 10px; }
         .btn-setloc { background: #f59e0b; color: #000; margin-top: 10px; }
+        .btn-unlock { background: #374151; color: #f59e0b; margin-top: 10px; font-size: 12px; padding: 10px; }
         
         .table-wrap { overflow-x: auto; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; background: var(--card); min-width: 600px; }
@@ -70,6 +71,19 @@
         .loc-status.ok { color: var(--green); }
         .loc-status.bad { color: var(--red); }
 
+        /* ===== DEVICE LOCK STYLES ===== */
+        #device-locked-view {
+            background: rgba(0,229,255,0.06);
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        #device-locked-view .lock-label { font-size: 12px; color: var(--muted); }
+        #device-locked-view .lock-name { font-size: 20px; font-weight: bold; color: var(--accent); margin-top: 4px; }
+        #device-locked-view .lock-role { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        /* =============================== */
+
         .toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
             background: #1f2937; color: var(--text); padding: 12px 24px; border-radius: 10px;
@@ -95,8 +109,15 @@
     </div>
 
     <div class="scan-box">
-        <label>ជ្រើសរើសឈ្មោះបុគ្គលិក:</label>
-        <select id="staff-name"></select>
+        <div id="device-locked-view" style="display:none;">
+            <div class="lock-label">🔒 ឧបករណ៍នេះកំណត់សម្រាប់</div>
+            <div class="lock-name" id="locked-name-display"></div>
+            <div class="lock-role" id="locked-role-display"></div>
+        </div>
+        <div id="device-select-view">
+            <label>ជ្រើសរើសឈ្មោះបុគ្គលិក:</label>
+            <select id="staff-name"></select>
+        </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
             <button class="btn btn-morning" onclick="submitAttendance('morning')">☀️ CheckIn(Morning)</button>
             <button class="btn btn-afternoon" onclick="submitAttendance('afternoon')">🌤️ CheckIn(Afternoon)</button>
@@ -104,6 +125,7 @@
         </div>
         <div class="loc-status" id="loc-status-scan"></div>
         <a href="#" onclick="window.open(CONFIG.schoolMapLink, '_blank'); return false;" style="display:block; text-align:center; margin-top:12px; color:var(--accent); font-size:12px; text-decoration:underline;">🗺️ មើលទីតាំងសាលា</a>
+        <button class="btn btn-unlock admin-only" onclick="unlockDevice()">🔓 ប្តូរអ្នកប្រើឧបករណ៍នេះ (ត្រូវការលេខសម្ងាត់ Admin)</button>
     </div>
 
     <button class="btn btn-summary admin-only" onclick="sendSummaryToTelegram()">📤 ផ្ញើរបាយការណ៍សរុបទៅ Telegram</button>
@@ -138,7 +160,8 @@ const CONFIG = {
     schoolMapLink: 'https://goo.gl/maps/WVQkhMkksk1uiJrU7',
     schoolLat: 11.614690,
     schoolLng: 104.907773,
-    allowedRadiusMeters: 100 // អាចកែបានតាមចង់បាន — ចម្ងាយអតិបរមាដែលអនុញ្ញាតឲ្យស្កេន (100 ម៉ែត្រ)
+    allowedRadiusMeters: 100, // អាចកែបានតាមចង់បាន — ចម្ងាយអតិបរមាដែលអនុញ្ញាតឲ្យស្កេន (100 ម៉ែត្រ)
+    adminPin: '1234' // ⚠️ សូមប្តូរលេខសម្ងាត់នេះទៅជាលេខផ្សេងដែលមានតែ Admin ដឹង! ត្រូវការសម្រាប់ដោះសោឧបករណ៍
 };
 
 const STAFF_LIST = [
@@ -171,6 +194,47 @@ if (storedDate !== TODAY) {
 }
 
 let records = JSON.parse(localStorage.getItem('mikids_v2_db')) || {};
+
+// ========== DEVICE LOCK (ការពារការស្កេនជំនួសគ្នា) ==========
+// ពេលបុគ្គលិកជ្រើសរើសឈ្មោះលើកទីមួយនិងចុចប៊ូតុងស្កេន ប្រព័ន្ធនឹង "ចាក់សោ" ទូរស័ព្ទ/ឧបករណ៍នេះ
+// ឲ្យប្រើបានតែឈ្មោះនោះម្តងទៀត។ ដើម្បីប្តូរអ្នកប្រើ ត្រូវការលេខសម្ងាត់ Admin (CONFIG.adminPin)។
+function getDeviceUser() {
+    const raw = localStorage.getItem('mikids_device_user');
+    return raw ? JSON.parse(raw) : null;
+}
+
+function lockDeviceToUser(name) {
+    const staff = STAFF_LIST.find(s => s.name === name);
+    localStorage.setItem('mikids_device_user', JSON.stringify({ name, role: staff ? staff.role : '' }));
+}
+
+function unlockDevice() {
+    const pin = prompt("បញ្ចូលលេខសម្ងាត់ Admin ដើម្បីប្តូរអ្នកប្រើឧបករណ៍នេះ:");
+    if (pin === null) return;
+    if (pin !== CONFIG.adminPin) {
+        showToast("❌ លេខសម្ងាត់មិនត្រឹមត្រូវ!", 'error');
+        return;
+    }
+    localStorage.removeItem('mikids_device_user');
+    showToast("✅ ឧបករណ៍នេះអាចជ្រើសរើសឈ្មោះថ្មីបានហើយ", 'success');
+    updateDeviceUserView();
+}
+
+function updateDeviceUserView() {
+    const user = getDeviceUser();
+    const lockedView = document.getElementById('device-locked-view');
+    const selectView = document.getElementById('device-select-view');
+    if (user) {
+        lockedView.style.display = 'block';
+        selectView.style.display = 'none';
+        document.getElementById('locked-name-display').textContent = user.name;
+        document.getElementById('locked-role-display').textContent = user.role || '';
+    } else {
+        lockedView.style.display = 'none';
+        selectView.style.display = 'block';
+    }
+}
+// ============================================================
 
 // ========== SCHOOL LOCATION (GPS GATE) ==========
 // admin ត្រូវចុច "កំណត់ទីតាំងសាលា" ម្តងនៅសាលា ដើម្បីរក្សាទុកកូអរដោនេពិតប្រាកដ
@@ -329,8 +393,26 @@ function manualEdit(name, field, value, el) {
 }
 
 async function submitAttendance(type) {
-    const name = document.getElementById('staff-name').value;
-    if (!name) return showToast("សូមជ្រើសរើសឈ្មោះ!", 'error');
+    // ===== កំណត់ / ពិនិត្យអ្នកប្រើឧបករណ៍នេះ =====
+    let user = getDeviceUser();
+    let name;
+
+    if (user) {
+        name = user.name;
+    } else {
+        name = document.getElementById('staff-name').value;
+        if (!name) return showToast("សូមជ្រើសរើសឈ្មោះ!", 'error');
+
+        const confirmed = confirm(
+            `តើអ្នកគឺជា "${name}" មែនទេ?\n\n` +
+            `⚠️ ឧបករណ៍នេះនឹងចាក់សោសម្រាប់តែ "${name}" ប៉ុណ្ណោះក្រោយពីនេះ។ ` +
+            `មិនអាចប្តូរឈ្មោះលើឧបករណ៍នេះបានទៀត លុះត្រាតែ Admin ដោះសោ។`
+        );
+        if (!confirmed) return;
+
+        lockDeviceToUser(name);
+        updateDeviceUserView();
+    }
 
     const scanStatus = document.getElementById('loc-status-scan');
     scanStatus.className = 'loc-status';
@@ -432,6 +514,7 @@ window.onload = () => {
     select.innerHTML = '<option value="">-- Select --</option>' + STAFF_LIST.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
     renderTable();
     updateLocationStatusDisplay();
+    updateDeviceUserView();
 };
 </script>
 </body>
